@@ -1,3 +1,4 @@
+import { Plus, Trash2 } from "lucide-react";
 import { clamp } from "@/lib/utils";
 import type { Slice } from "@/types";
 
@@ -36,11 +37,27 @@ function redistribute(slices: Slice[], index: number, value: number): Slice[] {
 export function Bars({ slices, editable = false, onChange }: BarsProps) {
   const total = slices.reduce((acc, slice) => acc + slice.value, 0);
 
+  const rename = (index: number, name: string) =>
+    onChange?.(slices.map((slice, i) => (i === index ? { ...slice, name } : slice)));
+
+  const remove = (index: number) => onChange?.(slices.filter((_, i) => i !== index));
+
+  const add = () => onChange?.([...slices, { name: "New slice", value: 0 }]);
+
   return (
     <div className="bars">
       {slices.map((slice, index) => (
         <div className="bar-row" key={`${slice.name}-${index}`}>
-          <span className="bar-name">{slice.name}</span>
+          {editable ? (
+            <input
+              className="bar-name-input"
+              value={slice.name}
+              aria-label="Slice name"
+              onChange={(event) => rename(index, event.target.value)}
+            />
+          ) : (
+            <span className="bar-name">{slice.name}</span>
+          )}
           {editable ? (
             <input
               type="range"
@@ -59,8 +76,19 @@ export function Bars({ slices, editable = false, onChange }: BarsProps) {
             </div>
           )}
           <span className="bar-value">{slice.value}%</span>
+          {editable ? (
+            <button type="button" className="card-tool" onClick={() => remove(index)} aria-label="Remove slice">
+              <Trash2 size={13} />
+            </button>
+          ) : null}
         </div>
       ))}
+      {editable ? (
+        <button type="button" className="btn btn-ghost btn-sm" onClick={add}>
+          <Plus size={13} />
+          Add slice
+        </button>
+      ) : null}
       <div className="bar-total" data-ok={total === 100}>
         total {total}%
       </div>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { ChevronDown, Plus, Check } from "lucide-react";
-import { COMPONENTS } from "@/schema";
+import { useCatalog } from "@/contexts/catalog";
 import type { Component } from "@/types";
 import { Icon } from "./icon";
 
@@ -49,6 +49,7 @@ function ToolItem({
 }
 
 export function Toolbox({ selected, onSelect, onAdd, draggable = false }: ToolboxProps) {
+  const { components, ready } = useCatalog();
   const [folded, setFolded] = useState(false);
 
   return (
@@ -65,12 +66,12 @@ export function Toolbox({ selected, onSelect, onAdd, draggable = false }: Toolbo
         />
         Component toolbox
         <span className="hint" style={{ marginLeft: "auto" }}>
-          {COMPONENTS.length}
+          {components.length}
         </span>
       </button>
 
       <div className="toolbox-body" data-folded={folded || undefined}>
-        {COMPONENTS.map((component) => (
+        {components.map((component) => (
           <ToolItem
             key={component.name}
             component={component}
@@ -79,6 +80,11 @@ export function Toolbox({ selected, onSelect, onAdd, draggable = false }: Toolbo
             onClick={() => (onSelect ? onSelect(component.name) : onAdd?.(component.name))}
           />
         ))}
+        {components.length === 0 ? (
+          <span className="hint" style={{ padding: "var(--sp-2)" }}>
+            {ready ? "No components available." : "Loading components…"}
+          </span>
+        ) : null}
       </div>
     </div>
   );

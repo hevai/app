@@ -20,8 +20,14 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { X } from "lucide-react";
 import { toast } from "sonner";
-import { TEMPLATES, componentByName, templateComponents, uid } from "@/schema";
+import { uid } from "@/schema";
 import { defaultData, useProjects } from "@/contexts/projects";
+import { useCatalog } from "@/contexts/catalog";
+import { useIdentity } from "@/contexts/identity";
+import { useSession } from "@/hooks/use-session";
+import { api } from "@/lib/api";
+import { coerceData, executeAgent, SessionInvalidError } from "@/lib/compose";
+import { blockReady, readyHint } from "@/lib/utils";
 import type { Block, Component } from "@/types";
 import { Icon, templateIcon } from "./icon";
 import { Toolbox } from "./toolbox";
@@ -36,31 +42,23 @@ interface CanvasProps {
 const ASSEMBLY_ID = "assembly";
 const TOOL_PREFIX = "tool:";
 
-function toDraft(componentName: string, order: number): Block {
-  const component = componentByName(componentName);
-  return {
-    id: uid(),
-    component: componentName,
-    title: component?.label ?? componentName,
-    data: defaultData(component),
-    order,
-  };
-}
-
 function SortableDraft({
   block,
+  component,
+  busy,
   onEdit,
   onRemove,
   onSpark,
 }: {
   block: Block;
+  component?: Component;
+  busy: boolean;
   onEdit: () => void;
   onRemove: () => void;
   onSpark: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } =
     useSortable({ id: block.id });
-  const component = componentByName(block.component);
   return (
     <div
       ref={setNodeRef}
@@ -75,6 +73,7 @@ function SortableDraft({
         component={component}
         dragging={isDragging}
         over={isOver}
+        busy={busy}
         onEdit={onEdit}
         onRemove={onRemove}
         onSpark={onSpark}
@@ -86,6 +85,9 @@ function SortableDraft({
 
 export function Canvas({ open, onClose }: CanvasProps) {
   const { createProject } = useProjects();
+  const { templates, componentByName, templateComponents } = useCatalog();
+  const { address } = useIdentity();
+  const { session, refreshSession } = useSession();
   const navigate = useNavigate();
   const [template, setTemplate] = useState("idea");
   const [name, setName] = useState("");
@@ -93,6 +95,22 @@ export function Canvas({ open, onClose }: CanvasProps) {
   const [drafts, setDrafts] = useState<Block[]>([]);
   const [editing, setEditing] = useState<Block | null>(null);
   const [dragTool, setDragTool] = useState<Component | null>(null);
+  const [tried, setTried] = useState(false);
+  const [running, setRunning] = useState<string | null>(null);
+  const [addingId, setAddingId] = useState<string | null>(null);
+
+  const toDraft = (componentName: string, order: number): Block => {
+    const component = componentByName(componentName);
+    return {
+      id: uid(),
+      component: componentName,
+      title: component?.label ?? componentName,
+      brief: "",
+      data: defaultData(component),
+      options: {},
+      order,
+    };
+  };
 
   useEffect(() => {
     if (open) {
@@ -101,8 +119,11 @@ export function Canvas({ open, onClose }: CanvasProps) {
       setDescription("");
       setDrafts(templateComponents("idea").map((componentName, index) => toDraft(componentName, index)));
       setEditing(null);
+      setAddingId(null);
       setDragTool(null);
+      setTried(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const sensors = useSensors(
@@ -114,38 +135,91 @@ export function Canvas({ open, onClose }: CanvasProps) {
 
   const options = useMemo(
     () => [
-      ...TEMPLATES.map((t) => ({ name: t.name, label: t.label, description: t.description })),
+      ...templates.map((t) => ({ name: t.name, label: t.label, description: t.description })),
       {
         name: "scratch",
         label: "Start from scratch",
         description: "A blank project. Add only the components you need.",
       },
     ],
-    [],
+    [templates],
   );
 
   if (!open) return null;
 
+  const nameValid = name.trim().length > 0;
+  const descriptionValid = description.trim().length > 0;
+
   const pickTemplate = (next: string) => {
     setTemplate(next);
     setDrafts(templateComponents(next).map((componentName, index) => toDraft(componentName, index)));
+    setEditing(null);
+    setAddingId(null);
   };
 
   const toggle = (componentName: string) => {
-    setDrafts((current) => {
-      if (current.some((draft) => draft.component === componentName)) {
-        return current.filter((draft) => draft.component !== componentName);
-      }
-      return [...current, toDraft(componentName, current.length)];
-    });
+    const existing = drafts.find((draft) => draft.component === componentName);
+    if (existing) {
+      setDrafts(drafts.filter((draft) => draft.component !== componentName));
+      if (addingId === existing.id) setAddingId(null);
+      return;
+    }
+    const draft = toDraft(componentName, drafts.length);
+    setDrafts([...drafts, draft]);
+    setAddingId(draft.id);
+    setEditing(draft);
   };
 
-  const spark = () => {
+  const spark = async (block: Block) => {
+    if (running) return;
     if (!name.trim() || !description.trim()) {
       toast.error("Add a name and a description first — then AI can complete components for you.");
       return;
     }
-    toast.info("AI completion arrives in the next iteration.");
+    const component = componentByName(block.component);
+    if (!component) return;
+    if (!blockReady(block, component)) {
+      toast.error(readyHint(block, component));
+      return;
+    }
+    if (!address) {
+      toast.error("Connect your account first.");
+      return;
+    }
+    if (!session.active || !session.token) {
+      toast.error("Start a session first — the star spends from your session budget.");
+      return;
+    }
+    setRunning(block.id);
+    try {
+      const payload = await api.runBlock(block.component, {
+        wallet: address,
+        project: "draft",
+        block: block.id,
+        title: component.label,
+        brief: block.brief,
+        name,
+        description,
+        data: block.data,
+        options: block.options ?? {},
+      });
+      const result = await executeAgent(payload);
+      const data = coerceData(result.data, block.data, component);
+      setDrafts((current) =>
+        current.map((draft) => (draft.id === block.id ? { ...draft, data } : draft)),
+      );
+      toast.success(`${component.label} completed by ${result.model}`);
+      void refreshSession();
+    } catch (cause) {
+      if (cause instanceof SessionInvalidError) {
+        toast.error("Session problem — check your budget or start a new session.");
+        void refreshSession();
+      } else {
+        toast.error(cause instanceof Error ? cause.message : "AI completion failed");
+      }
+    } finally {
+      setRunning(null);
+    }
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -163,18 +237,18 @@ export function Canvas({ open, onClose }: CanvasProps) {
     if (activeId.startsWith(TOOL_PREFIX)) {
       if (!overId) return;
       const componentName = activeId.slice(TOOL_PREFIX.length);
-      setDrafts((current) => {
-        if (current.some((draft) => draft.component === componentName)) return current;
-        const draft = toDraft(componentName, current.length);
-        let index = current.length;
-        if (overId !== ASSEMBLY_ID) {
-          const position = current.findIndex((entry) => entry.id === overId);
-          if (position >= 0) index = position;
-        }
-        const next = [...current];
-        next.splice(index, 0, draft);
-        return next;
-      });
+      if (drafts.some((draft) => draft.component === componentName)) return;
+      const draft = toDraft(componentName, drafts.length);
+      let index = drafts.length;
+      if (overId !== ASSEMBLY_ID) {
+        const position = drafts.findIndex((entry) => entry.id === overId);
+        if (position >= 0) index = position;
+      }
+      const next = [...drafts];
+      next.splice(index, 0, draft);
+      setDrafts(next);
+      setAddingId(draft.id);
+      setEditing(draft);
       return;
     }
 
@@ -189,8 +263,19 @@ export function Canvas({ open, onClose }: CanvasProps) {
   };
 
   const handleCreate = () => {
-    if (!name.trim()) {
+    setTried(true);
+    if (!nameValid) {
       toast.error("Give your project a name first.");
+      return;
+    }
+    if (!descriptionValid) {
+      toast.error("Add a short description — the agents need it for context.");
+      return;
+    }
+    const incomplete = drafts.find((draft) => !blockReady(draft, componentByName(draft.component)));
+    if (incomplete) {
+      toast.error("Every component needs a brief of at least 10 words before it can be added.");
+      setEditing(incomplete);
       return;
     }
     const project = createProject({
@@ -235,22 +320,37 @@ export function Canvas({ open, onClose }: CanvasProps) {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--sp-3)", marginBottom: "var(--sp-4)" }}>
               <div className="field-group">
-                <label className="label">Project name</label>
+                <label className="label" htmlFor="canvas-name">
+                  <span className="req" aria-hidden="true">*</span>
+                  Project name
+                </label>
                 <input
+                  id="canvas-name"
                   className="input"
                   value={name}
                   placeholder="e.g. Apollo"
+                  aria-required="true"
+                  autoFocus
                   onChange={(e) => setName(e.target.value)}
                 />
+                {tried && !nameValid ? <span className="hint hint-req">Required</span> : null}
               </div>
               <div className="field-group">
-                <label className="label">Description</label>
+                <label className="label" htmlFor="canvas-description">
+                  <span className="req" aria-hidden="true">*</span>
+                  Description
+                </label>
                 <input
+                  id="canvas-description"
                   className="input"
                   value={description}
                   placeholder="What is this project about?"
+                  aria-required="true"
                   onChange={(e) => setDescription(e.target.value)}
                 />
+                {tried && !descriptionValid ? (
+                  <span className="hint hint-req">Required — it gives the agents context</span>
+                ) : null}
               </div>
             </div>
 
@@ -265,7 +365,7 @@ export function Canvas({ open, onClose }: CanvasProps) {
                 <div className="canvas-side">
                   <Toolbox selected={selected} onSelect={toggle} draggable />
                   <span className="hint">
-                    Click a component to add or remove it. Drag it into the canvas to place it.
+                    Click a component to add it and start filling it. Drag it to place it.
                   </span>
                 </div>
 
@@ -279,16 +379,18 @@ export function Canvas({ open, onClose }: CanvasProps) {
                       <div className="canvas-drop-hint">
                         Drag components here from the toolbox — or click them to add.
                         <br />
-                        Use the pencil on a component to customize it before creating.
+                        Each component opens ready for you to fill it in.
                       </div>
                     ) : (
                       drafts.map((draft) => (
                         <SortableDraft
                           key={draft.id}
                           block={draft}
+                          component={componentByName(draft.component)}
+                          busy={running === draft.id}
                           onEdit={() => setEditing(draft)}
                           onRemove={() => toggle(draft.component)}
-                          onSpark={spark}
+                          onSpark={() => spark(draft)}
                         />
                       ))
                     )}
@@ -311,7 +413,8 @@ export function Canvas({ open, onClose }: CanvasProps) {
 
           <div className="modal-foot">
             <span className="hint" style={{ marginRight: "auto" }}>
-              {drafts.length} component{drafts.length === 1 ? "" : "s"} in the project
+              {drafts.length} component{drafts.length === 1 ? "" : "s"} in the project ·{" "}
+              <span className="req">*</span> required
             </span>
             <button type="button" className="btn btn-ghost" onClick={onClose}>
               Cancel
@@ -325,14 +428,23 @@ export function Canvas({ open, onClose }: CanvasProps) {
 
       {editing ? (
         <Editor
+          key={editing.id}
           block={editing}
           component={componentByName(editing.component)}
           open
-          onClose={() => setEditing(null)}
+          submitLabel={addingId === editing.id ? "Add component" : "Save"}
+          onClose={() => {
+            if (addingId === editing.id) {
+              setDrafts((current) => current.filter((draft) => draft.id !== editing.id));
+              setAddingId(null);
+            }
+            setEditing(null);
+          }}
           onSave={(patch) => {
             setDrafts((current) =>
               current.map((draft) => (draft.id === editing.id ? { ...draft, ...patch } : draft)),
             );
+            if (addingId === editing.id) setAddingId(null);
             setEditing(null);
           }}
         />

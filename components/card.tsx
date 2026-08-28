@@ -1,5 +1,6 @@
-import { GripVertical, Pencil, Sparkles, Trash2 } from "lucide-react";
+import { GripVertical, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import type { Block, Component, Slice } from "@/types";
+import { BRIEF_WORDS, blockReady, countWords, formatDate, readyHint, toDated, toPair, toRank } from "@/lib/utils";
 import { Icon } from "./icon";
 import { Bars } from "./bars";
 
@@ -8,6 +9,7 @@ interface CardProps {
   component?: Component;
   dragging?: boolean;
   over?: boolean;
+  busy?: boolean;
   onEdit?: () => void;
   onRemove?: () => void;
   onSpark?: () => void;
@@ -16,7 +18,7 @@ interface CardProps {
 
 export function Body({ block, component }: { block: Block; component?: Component }) {
   if (!component || component.fields.length === 0) {
-    return <div className="card-empty">Nothing here yet — use the pencil to add details.</div>;
+    return <div className="card-empty">Nothing here yet — click to fill this block.</div>;
   }
 
   const parts: React.ReactNode[] = [];
@@ -84,6 +86,64 @@ export function Body({ block, component }: { block: Block; component?: Component
         );
         break;
       }
+      case "pairs": {
+        const rows = (Array.isArray(value) ? value : []).map(toPair);
+        parts.push(
+          <div className="rows" key={field.name}>
+            {rows.length === 0 ? (
+              <div className="card-empty">No {field.label.toLowerCase()} yet.</div>
+            ) : (
+              rows.map((row, index) => (
+                <div className="row" key={index}>
+                  <span className="row-dot" />
+                  <span className="row-label">{row.label}</span>
+                  <span className="row-value">{row.value || "—"}</span>
+                </div>
+              ))
+            )}
+          </div>,
+        );
+        break;
+      }
+      case "ranked": {
+        const rows = (Array.isArray(value) ? value : []).map(toRank);
+        parts.push(
+          <div className="rows" key={field.name}>
+            {rows.length === 0 ? (
+              <div className="card-empty">No {field.label.toLowerCase()} yet.</div>
+            ) : (
+              rows.map((row, index) => (
+                <div className="row" key={index}>
+                  <span className="row-dot" />
+                  <span className="row-label">{row.label}</span>
+                  {row.level ? <span className="chip">{row.level}</span> : null}
+                </div>
+              ))
+            )}
+          </div>,
+        );
+        break;
+      }
+      case "dated": {
+        const rows = (Array.isArray(value) ? value : []).map(toDated);
+        parts.push(
+          <div className="rows" key={field.name}>
+            {rows.length === 0 ? (
+              <div className="card-empty">No {field.label.toLowerCase()} yet.</div>
+            ) : (
+              rows.map((row, index) => (
+                <div className="row" key={index}>
+                  <span className="row-dot" />
+                  <span className="row-label">{row.label}</span>
+                  {row.date ? <span className="row-date">{formatDate(row.date)}</span> : null}
+                  {row.level ? <span className="chip">{row.level}</span> : null}
+                </div>
+              ))
+            )}
+          </div>,
+        );
+        break;
+      }
       default: {
         const text = typeof value === "string" ? value : "";
         parts.push(
@@ -103,14 +163,19 @@ export function Body({ block, component }: { block: Block; component?: Component
   return <>{parts}</>;
 }
 
-export function Card({ block, component, dragging, over, onEdit, onRemove, onSpark, dragHandleProps }: CardProps) {
+export function Card({ block, component, dragging, over, busy, onEdit, onRemove, onSpark, dragHandleProps }: CardProps) {
+  const ready = blockReady(block, component);
+  const words = Math.min(countWords(block.brief ?? ""), BRIEF_WORDS);
   return (
     <div className="card" data-dragging={dragging || undefined} data-over={over || undefined}>
       <div className="card-head">
         <span className="card-icon">
           <Icon name={component?.icon ?? "sparkles"} size={16} />
         </span>
-        <span className="card-title">{block.title}</span>
+        <span className="card-title">{component?.label ?? block.title}</span>
+        <span className="chip chip-progress" data-done={ready || undefined}>
+          {words}/{BRIEF_WORDS} words
+        </span>
         <span className="card-actions">
           <button
             type="button"
@@ -133,11 +198,14 @@ export function Card({ block, component, dragging, over, onEdit, onRemove, onSpa
             type="button"
             className="card-tool"
             data-spark="true"
-            aria-label="AI complete (coming soon)"
-            title="AI completion arrives in the next iteration"
+            data-ready={ready || undefined}
+            data-busy={busy || undefined}
+            disabled={busy || undefined}
+            aria-label={busy ? "AI completing this block" : ready ? "AI complete this block" : "AI complete (fill the block first)"}
+            title={busy ? "The block agent is working…" : ready ? "Ask the block agent to complete this block" : readyHint(block, component)}
             onClick={onSpark}
           >
-            <Sparkles size={14} />
+            {busy ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
           </button>
           {onRemove ? (
             <button
@@ -151,7 +219,9 @@ export function Card({ block, component, dragging, over, onEdit, onRemove, onSpa
           ) : null}
         </span>
       </div>
-      <Body block={block} component={component} />
+      <div className="card-content" data-editable={onEdit ? true : undefined} onClick={onEdit}>
+        <Body block={block} component={component} />
+      </div>
     </div>
   );
 }
