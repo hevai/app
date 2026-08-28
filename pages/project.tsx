@@ -17,9 +17,15 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { useProjects } from "@/contexts/projects";
-import { componentByName, templateByName } from "@/schema";
-import type { Block } from "@/types";
+import { defaultData, useProjects } from "@/contexts/projects";
+import { useCatalog } from "@/contexts/catalog";
+import { useIdentity } from "@/contexts/identity";
+import { useSession } from "@/hooks/use-session";
+import { api } from "@/lib/api";
+import { coerceData, executeAgent, SessionInvalidError } from "@/lib/compose";
+import { blockReady, readyHint, timeAgo } from "@/lib/utils";
+import { uid } from "@/schema";
+import type { Block, Component } from "@/types";
 import { Section } from "@/components/section";
 import { Toolbox } from "@/components/toolbox";
 import { Editor } from "@/components/editor";
@@ -28,24 +34,26 @@ import { Chat } from "@/components/chat";
 import { Confirm } from "@/components/confirm";
 import { ImagePicker } from "@/components/image-picker";
 import { Icon, templateIcon } from "@/components/icon";
-import { hasContent, timeAgo } from "@/lib/utils";
 
 function SortableSection({
   block,
+  component,
   register,
+  busy,
   onEdit,
   onRemove,
   onSpark,
 }: {
   block: Block;
+  component?: Component;
   register: (id: string, node: HTMLElement | null) => void;
+  busy: boolean;
   onEdit: () => void;
   onRemove: () => void;
   onSpark: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } =
     useSortable({ id: block.id });
-  const component = componentByName(block.component);
   return (
     <div
       ref={setNodeRef}
@@ -60,6 +68,7 @@ function SortableSection({
         component={component}
         dragging={isDragging}
         over={isOver}
+        busy={busy}
         onEdit={onEdit}
         onRemove={onRemove}
         onSpark={onSpark}
@@ -75,14 +84,20 @@ export function ProjectPage() {
   const navigate = useNavigate();
   const { getProject, addBlock, removeBlock, updateBlock, reorderBlocks, updateProject, deleteProject } =
     useProjects();
+  const { componentByName, templateByName } = useCatalog();
+  const { address } = useIdentity();
+  const { session, refreshSession } = useSession();
   const project = id ? getProject(id) : undefined;
 
   const [editing, setEditing] = useState<Block | null>(null);
   const [heroOpen, setHeroOpen] = useState(false);
   const [heroName, setHeroName] = useState("");
   const [heroDesc, setHeroDesc] = useState("");
+  const [heroTried, setHeroTried] = useState(false);
   const [active, setActive] = useState("overview");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [running, setRunning] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
   const paneRef = useRef<HTMLDivElement | null>(null);
   const sectionNodes = useRef<Map<string, HTMLElement>>(new Map());
@@ -105,15 +120,57 @@ export function ProjectPage() {
     return <Empty icon="alert" title="Project not found" description="It may have been removed." />;
   }
 
-  const filled = blocks.filter((block) => hasContent(block, componentByName(block.component))).length;
+  const ready = blocks.filter((block) => blockReady(block, componentByName(block.component))).length;
   const templateLabel = templateByName(project.template)?.label ?? project.template;
 
-  const spark = () => {
+  const spark = async (block: Block) => {
+    if (running) return;
     if (!project.name.trim() || !project.description.trim()) {
       toast.error("Add a name and a description to this project first — then AI can complete it.");
       return;
     }
-    toast.info("AI completion arrives in the next iteration.");
+    const component = componentByName(block.component);
+    if (!component) return;
+    if (!blockReady(block, component)) {
+      toast.error(readyHint(block, component));
+      return;
+    }
+    if (!address) {
+      toast.error("Connect your account first.");
+      return;
+    }
+    if (!session.active || !session.token) {
+      toast.error("Start a session first — the star spends from your session budget.");
+      return;
+    }
+    setRunning(block.id);
+    try {
+      const payload = await api.runBlock(block.component, {
+        wallet: address,
+        project: project.id,
+        block: block.id,
+        title: component.label,
+        brief: block.brief,
+        name: project.name,
+        description: project.description,
+        data: block.data,
+        options: block.options ?? {},
+      });
+      const result = await executeAgent(payload);
+      const data = coerceData(result.data, block.data, component);
+      updateBlock(project.id, block.id, { data });
+      toast.success(`${component.label} completed by ${result.model}`);
+      void refreshSession();
+    } catch (cause) {
+      if (cause instanceof SessionInvalidError) {
+        toast.error("Session problem — check your budget or start a new session.");
+        void refreshSession();
+      } else {
+        toast.error(cause instanceof Error ? cause.message : "AI completion failed");
+      }
+    } finally {
+      setRunning(null);
+    }
   };
 
   const scrollTo = (target: string) => {
@@ -153,13 +210,30 @@ export function ProjectPage() {
     reorderBlocks(project.id, arrayMove(ids, from, to));
   };
 
+  const handleAdd = (componentName: string) => {
+    const component = componentByName(componentName);
+    if (!component) return;
+    setAdding(true);
+    setEditing({
+      id: uid(),
+      component: componentName,
+      title: component.label,
+      brief: "",
+      data: defaultData(component),
+      options: {},
+      order: blocks.length,
+    });
+  };
+
   const openHero = () => {
     setHeroName(project.name);
     setHeroDesc(project.description);
+    setHeroTried(false);
     setHeroOpen(true);
   };
 
   const saveHero = () => {
+    setHeroTried(true);
     if (!heroName.trim()) {
       toast.error("The project needs a name.");
       return;
@@ -191,14 +265,14 @@ export function ProjectPage() {
             onClick={() => scrollTo(block.id)}
           >
             <Icon name={componentByName(block.component)?.icon ?? "sparkles"} size={15} />
-            {block.title}
+            {componentByName(block.component)?.label ?? block.title}
           </button>
         ))}
 
         <div className="divider" style={{ margin: "var(--sp-2) 0" }} />
-        <Toolbox onAdd={(componentName) => addBlock(project.id, componentName)} />
+        <Toolbox onAdd={handleAdd} />
         <div className="hint" style={{ marginTop: "auto", padding: "0 var(--sp-1)" }}>
-          Drag sections to reorder. Use the pencil to customize.
+          Drag sections to reorder. Click a section to fill it.
         </div>
       </div>
 
@@ -247,7 +321,9 @@ export function ProjectPage() {
               {templateLabel}
             </span>
             <span className="chip">{blocks.length} section{blocks.length === 1 ? "" : "s"}</span>
-            <span className="chip">{filled} with content</span>
+            <span className="chip" data-done={(blocks.length > 0 && ready === blocks.length) || undefined}>
+              {ready}/{blocks.length} ready for AI
+            </span>
             <span className="hint">updated {timeAgo(project.updated)}</span>
           </div>
         </div>
@@ -266,10 +342,12 @@ export function ProjectPage() {
                   <SortableSection
                     key={block.id}
                     block={block}
+                    component={componentByName(block.component)}
                     register={register}
+                    busy={running === block.id}
                     onEdit={() => setEditing(block)}
                     onRemove={() => removeBlock(project.id, block.id)}
-                    onSpark={spark}
+                    onSpark={() => spark(block)}
                   />
                 ))}
               </div>
@@ -280,13 +358,20 @@ export function ProjectPage() {
 
       {editing ? (
         <Editor
+          key={editing.id}
           block={editing}
           component={componentByName(editing.component)}
           open
-          onClose={() => setEditing(null)}
-          onSave={(patch) => {
-            updateBlock(project.id, editing.id, patch);
+          submitLabel={adding ? "Add component" : "Save"}
+          onClose={() => {
             setEditing(null);
+            setAdding(false);
+          }}
+          onSave={(patch) => {
+            if (adding) addBlock(project.id, editing.component, patch);
+            else updateBlock(project.id, editing.id, patch);
+            setEditing(null);
+            setAdding(false);
           }}
         />
       ) : null}
@@ -307,16 +392,31 @@ export function ProjectPage() {
             </div>
             <div className="modal-body">
               <div className="field-group" style={{ marginBottom: "var(--sp-3)" }}>
-                <label className="label">Name</label>
-                <input className="input" value={heroName} onChange={(e) => setHeroName(e.target.value)} />
+                <label className="label" htmlFor="hero-name">
+                  <span className="req" aria-hidden="true">*</span>
+                  Name
+                </label>
+                <input
+                  id="hero-name"
+                  className="input"
+                  value={heroName}
+                  aria-required="true"
+                  onChange={(e) => setHeroName(e.target.value)}
+                />
+                {heroTried && !heroName.trim() ? <span className="hint hint-req">Required</span> : null}
               </div>
               <div className="field-group">
-                <label className="label">Description</label>
+                <label className="label" htmlFor="hero-description">
+                  Description
+                  <span className="opt">optional</span>
+                </label>
                 <textarea
+                  id="hero-description"
                   className="textarea"
                   value={heroDesc}
                   onChange={(e) => setHeroDesc(e.target.value)}
                 />
+                <span className="hint">Strongly recommended — it gives the agents context</span>
               </div>
             </div>
             <div className="modal-foot">
