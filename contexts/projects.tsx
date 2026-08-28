@@ -9,9 +9,11 @@ import {
   type ReactNode,
 } from "react";
 import type { Block, Component, Project } from "@/types";
-import { componentByName, templateComponents, uid } from "@/schema";
+import { uid } from "@/schema";
 import { api } from "@/lib/api";
+import { normalizeData, seedValue } from "@/lib/utils";
 import { useIdentity } from "./identity";
+import { useCatalog } from "./catalog";
 
 interface ProjectsValue {
   projects: Project[];
@@ -26,7 +28,7 @@ interface ProjectsValue {
   }) => Project;
   updateProject: (id: string, patch: Partial<Project>) => void;
   deleteProject: (id: string) => void;
-  addBlock: (projectId: string, componentName: string) => void;
+  addBlock: (projectId: string, componentName: string, patch?: Partial<Block>) => Block | undefined;
   removeBlock: (projectId: string, blockId: string) => void;
   updateBlock: (projectId: string, blockId: string, patch: Partial<Block>) => void;
   reorderBlocks: (projectId: string, orderedIds: string[]) => void;
@@ -39,71 +41,19 @@ const STORAGE_PREFIX = "hevai:projects";
 export function defaultData(component: Component | undefined): Record<string, unknown> {
   const data: Record<string, unknown> = {};
   if (!component) return data;
-  for (const field of component.fields) {
-    switch (field.kind) {
-      case "bars": {
-        const names = field.name === "slices" ? ["Build", "Marketing", "Ops"] : ["One", "Two", "Three"];
-        const share = Math.floor(100 / names.length);
-        const slices = names.map((name, index) => ({
-          name,
-          value: index === names.length - 1 ? 100 - share * (names.length - 1) : share,
-        }));
-        data[field.name] = slices;
-        break;
-      }
-      case "roles":
-        data[field.name] = [];
-        break;
-      case "list":
-      case "tags":
-        data[field.name] = [];
-        break;
-      default:
-        data[field.name] = "";
-    }
-  }
+  for (const field of component.fields) data[field.name] = seedValue(field);
   return data;
 }
 
-function buildProject(input: {
-  name: string;
-  description: string;
-  template: string;
-  components?: string[];
-  blocks?: Block[];
-  image?: string;
-}): Project {
-  const now = Date.now();
-  let blocks: Block[];
-  if (input.blocks && input.blocks.length > 0) {
-    blocks = input.blocks.map((block, index) => ({ ...block, order: index }));
-  } else {
-    const names = input.components ?? templateComponents(input.template);
-    blocks = names.map((componentName, index) => {
-      const component = componentByName(componentName);
-      return {
-        id: uid(),
-        component: componentName,
-        title: component?.label ?? componentName,
-        data: defaultData(component),
-        order: index,
-      };
-    });
-  }
+function makeBlock(componentName: string, order: number, component?: Component): Block {
   return {
     id: uid(),
-    user: "",
-    name: input.name,
-    description: input.description,
-    template: input.template,
-    image: input.image ?? "",
-    members: [],
-    blocks,
-    navigation: [{ label: "Overview", blocks: blocks.map((block) => block.id) }],
-    plugins: [],
-    revision: 1,
-    created: now,
-    updated: now,
+    component: componentName,
+    title: component?.label ?? componentName,
+    brief: "",
+    data: defaultData(component),
+    options: {},
+    order,
   };
 }
 
@@ -111,8 +61,25 @@ function storageKey(address: string): string {
   return `${STORAGE_PREFIX}:${address.toLowerCase()}`;
 }
 
+// Backfills newer block properties on projects saved by older versions.
+function normalizeBlock(block: Block): Block {
+  return {
+    ...block,
+    brief: typeof block.brief === "string" ? block.brief : "",
+    options:
+      block.options && typeof block.options === "object" && !Array.isArray(block.options)
+        ? block.options
+        : {},
+    data: block.data && typeof block.data === "object" ? block.data : {},
+  };
+}
+
 function normalize(project: Project): Project {
-  return { ...project, image: project.image ?? "" };
+  return {
+    ...project,
+    image: project.image ?? "",
+    blocks: Array.isArray(project.blocks) ? project.blocks.map(normalizeBlock) : [],
+  };
 }
 
 function load(address: string): Project[] {
@@ -136,7 +103,7 @@ function persist(address: string, projects: Project[]): void {
 
 function mergeProjects(local: Project[], remote: Project[]): Project[] {
   const byId = new Map<string, Project>();
-  for (const project of remote) byId.set(project.id, project);
+  for (const project of remote) byId.set(project.id, normalize(project));
   for (const project of local) {
     const existing = byId.get(project.id);
     if (!existing || project.updated >= existing.updated) byId.set(project.id, project);
@@ -148,8 +115,11 @@ const hasBackend = Boolean((import.meta.env.VITE_API_URL ?? "").trim());
 
 export function ProjectsProvider({ children }: { children: ReactNode }) {
   const { address } = useIdentity();
+  const { componentByName, templateComponents } = useCatalog();
   const [projects, setProjects] = useState<Project[]>([]);
   const projectsRef = useRef(projects);
+  const catalogRef = useRef({ componentByName, templateComponents });
+  catalogRef.current = { componentByName, templateComponents };
 
   useEffect(() => {
     const next = address ? load(address) : [];
@@ -208,6 +178,28 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     [address],
   );
 
+  useEffect(() => {
+    if (!address) return;
+    const current = projectsRef.current;
+    if (current.length === 0) return;
+    const changed: string[] = [];
+    const next = current.map((project) => {
+      let blockTouched = false;
+      const blocks = project.blocks.map((block) => {
+        const component = componentByName(block.component);
+        if (!component) return block;
+        const data = normalizeData(block.data, component);
+        if (JSON.stringify(data) === JSON.stringify(block.data)) return block;
+        blockTouched = true;
+        return { ...block, data };
+      });
+      if (!blockTouched) return project;
+      changed.push(project.id);
+      return { ...project, blocks };
+    });
+    if (changed.length > 0) commit(next, { changed });
+  }, [address, componentByName, commit]);
+
   const getProject = useCallback(
     (id: string) => projects.find((project) => project.id === id),
     [projects],
@@ -223,7 +215,32 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       image?: string;
     }) => {
       if (!address) throw new Error("Connect before creating a project");
-      const project = { ...buildProject(input), user: address };
+      const { componentByName: byName, templateComponents: ofTemplate } = catalogRef.current;
+      const now = Date.now();
+      let blocks: Block[];
+      if (input.blocks && input.blocks.length > 0) {
+        blocks = input.blocks.map((block, index) => ({ ...normalizeBlock(block), order: index }));
+      } else {
+        const names = input.components ?? ofTemplate(input.template);
+        blocks = names.map((componentName, index) =>
+          makeBlock(componentName, index, byName(componentName)),
+        );
+      }
+      const project: Project = {
+        id: uid(),
+        user: address,
+        name: input.name,
+        description: input.description,
+        template: input.template,
+        image: input.image ?? "",
+        members: [],
+        blocks,
+        navigation: [{ label: "Overview", blocks: blocks.map((block) => block.id) }],
+        plugins: [],
+        revision: 1,
+        created: now,
+        updated: now,
+      };
       commit([project, ...projectsRef.current], { changed: [project.id] });
       return project;
     },
@@ -264,24 +281,26 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   );
 
   const addBlock = useCallback(
-    (projectId: string, componentName: string) => {
-      const component = componentByName(componentName);
+    (projectId: string, componentName: string, patch?: Partial<Block>): Block | undefined => {
+      const target = projectsRef.current.find((project) => project.id === projectId);
+      if (!target) return undefined;
+      const base = makeBlock(componentName, target.blocks.length, catalogRef.current.componentByName(componentName));
       const block: Block = {
-        id: uid(),
-        component: componentName,
-        title: component?.label ?? componentName,
-        data: defaultData(component),
-        order: 0,
+        ...base,
+        brief: patch?.brief ?? base.brief,
+        data: patch?.data ?? base.data,
+        options: patch?.options ?? base.options,
       };
       const next = projectsRef.current.map((project) => {
         if (project.id !== projectId) return project;
-        const blocks = [...project.blocks, { ...block, order: project.blocks.length }];
+        const blocks = [...project.blocks, block];
         const navigation = project.navigation.map((page, index) =>
           index === 0 ? { ...page, blocks: [...page.blocks, block.id] } : page,
         );
         return { ...project, blocks, navigation, updated: Date.now() };
       });
       commit(next, { changed: [projectId] });
+      return block;
     },
     [commit],
   );
