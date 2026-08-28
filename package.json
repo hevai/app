@@ -1,0 +1,48 @@
+{
+  "name": "hevai",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "desktop": "tauri dev",
+    "bundle": "npm run silicon && npm run intel && npm run windows && npm run android && npm run ios",
+    "silicon": "tauri build --target aarch64-apple-darwin",
+    "intel": "tauri build --target x86_64-apple-darwin",
+    "windows": "tauri build --target x86_64-pc-windows-msvc",
+    "android": "tauri android build",
+    "ios": "tauri ios build"
+  },
+  "dependencies": {
+    "@compose-market/sdk": "^0.8.29",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@hookform/resolvers": "^5.9.1",
+    "@tanstack/react-query": "^5.102.8",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-deep-link": "^2.4.9",
+    "@tauri-apps/plugin-opener": "^2.5.4",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.34.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-hook-form": "^7.86.0",
+    "react-router-dom": "^7.18.2",
+    "sonner": "^2.0.8",
+    "thirdweb": "^5.121.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.0",
+    "typescript": "~7.0.2",
+    "vite": "^8.2.2"
+  }
+}
