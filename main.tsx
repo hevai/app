@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 import { ChainProvider } from "./contexts/network";
 import { IdentityProvider } from "./contexts/identity";
 import { SessionProvider } from "./hooks/use-session";
+import { CatalogProvider } from "./contexts/catalog";
 import { ProjectsProvider } from "./contexts/projects";
 import { ScopeProvider } from "./contexts/scope";
 import App from "./App";
@@ -32,9 +33,10 @@ createRoot(document.getElementById("root")!).render(
         <ChainProvider>
           <SessionProvider>
             <IdentityProvider>
-              <ProjectsProvider>
-                <ScopeProvider>
-                  <Router>
+              <CatalogProvider>
+                <ProjectsProvider>
+                  <ScopeProvider>
+                   <Router>
                    <App />
                   <Toaster
                     theme="dark"
@@ -48,8 +50,9 @@ createRoot(document.getElementById("root")!).render(
                     }}
                   />
                   </Router>
-                </ScopeProvider>
-              </ProjectsProvider>
+                  </ScopeProvider>
+                </ProjectsProvider>
+              </CatalogProvider>
             </IdentityProvider>
           </SessionProvider>
         </ChainProvider>

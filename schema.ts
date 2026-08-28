@@ -1,5 +1,8 @@
 import { z } from "zod";
-import type { Component, Template } from "./types";
+
+// Zod mirrors of the domain types. The component catalog itself lives in
+// the backend (components database) and is fetched at runtime — see
+// contexts/catalog.tsx. Nothing component-specific is hardcoded here.
 
 export const role = z.enum(["owner", "admin", "editor", "viewer"]);
 
@@ -9,12 +12,32 @@ export const member = z.object({
   role,
 });
 
+export const seed = z.object({
+  label: z.string(),
+  value: z.string().optional(),
+  level: z.string().optional(),
+  date: z.string().optional(),
+});
+
 export const field = z.object({
   name: z.string(),
   label: z.string(),
-  kind: z.enum(["text", "number", "select", "bars", "roles", "tags", "list"]),
+  kind: z.enum([
+    "text",
+    "number",
+    "select",
+    "bars",
+    "roles",
+    "tags",
+    "list",
+    "pairs",
+    "ranked",
+    "dated",
+  ]),
   options: z.array(z.string()).optional(),
   max: z.number().optional(),
+  open: z.boolean().optional(),
+  defaults: z.array(z.union([z.string(), seed])).optional(),
 });
 
 export const component = z.object({
@@ -34,11 +57,29 @@ export const template = z.object({
   specific: z.array(z.string()),
 });
 
+export const pair = z.object({
+  label: z.string(),
+  value: z.string(),
+});
+
+export const rank = z.object({
+  label: z.string(),
+  level: z.string(),
+});
+
+export const dated = z.object({
+  label: z.string(),
+  date: z.string(),
+  level: z.string(),
+});
+
 export const block = z.object({
   id: z.string(),
   component: z.string(),
   title: z.string(),
+  brief: z.string(),
   data: z.record(z.string(), z.unknown()),
+  options: z.record(z.string(), z.array(z.string())),
   order: z.number(),
 });
 
@@ -79,148 +120,6 @@ export const invite = z.object({
   role,
   expires: z.number(),
 });
-
-export const COMPONENTS: Component[] = [
-  {
-    name: "team",
-    label: "Team",
-    icon: "users",
-    description: "People and their roles in the project.",
-    view: "list",
-    fields: [
-      { name: "members", label: "Members", kind: "roles" },
-    ],
-  },
-  {
-    name: "budget",
-    label: "Budget",
-    icon: "piechart",
-    description: "How funds are distributed. Slices always total 100.",
-    view: "chart",
-    fields: [
-      { name: "slices", label: "Allocation", kind: "bars", max: 100 },
-    ],
-  },
-  {
-    name: "market",
-    label: "Market",
-    icon: "trending",
-    description: "Target market, segments and positioning.",
-    view: "card",
-    fields: [
-      { name: "summary", label: "Overview", kind: "text" },
-      { name: "segments", label: "Segments", kind: "tags" },
-    ],
-  },
-  {
-    name: "priorities",
-    label: "Priorities",
-    icon: "target",
-    description: "What matters most, ranked.",
-    view: "list",
-    fields: [
-      { name: "items", label: "Priorities", kind: "list" },
-    ],
-  },
-  {
-    name: "roadmap",
-    label: "Roadmap",
-    icon: "map",
-    description: "Phases of delivery over time.",
-    view: "list",
-    fields: [
-      { name: "phases", label: "Phases", kind: "list" },
-    ],
-  },
-  {
-    name: "milestones",
-    label: "Milestones",
-    icon: "flag",
-    description: "Dated checkpoints and deadlines.",
-    view: "list",
-    fields: [
-      { name: "items", label: "Milestones", kind: "list" },
-    ],
-  },
-  {
-    name: "risks",
-    label: "Risks",
-    icon: "alert",
-    description: "Threats, likelihood and mitigations.",
-    view: "list",
-    fields: [
-      { name: "items", label: "Risks", kind: "list" },
-    ],
-  },
-  {
-    name: "metrics",
-    label: "Metrics",
-    icon: "gauge",
-    description: "KPIs that measure health.",
-    view: "chart",
-    fields: [
-      { name: "kpis", label: "KPIs", kind: "bars", max: 100 },
-    ],
-  },
-  {
-    name: "tasks",
-    label: "Tasks",
-    icon: "check",
-    description: "Actionable to-dos.",
-    view: "list",
-    fields: [
-      { name: "items", label: "Tasks", kind: "list" },
-    ],
-  },
-  {
-    name: "goals",
-    label: "Goals",
-    icon: "trophy",
-    description: "Objectives and desired outcomes.",
-    view: "card",
-    fields: [
-      { name: "summary", label: "Objective", kind: "text" },
-      { name: "outcomes", label: "Outcomes", kind: "tags" },
-    ],
-  },
-];
-
-export const TEMPLATES: Template[] = [
-  {
-    name: "idea",
-    label: "Idea",
-    description: "Capture and validate an early concept.",
-    base: ["priorities", "goals", "tasks"],
-    specific: ["market", "risks", "metrics"],
-  },
-  {
-    name: "startup",
-    label: "Startup",
-    description: "Plan a venture from team to launch.",
-    base: ["priorities", "goals", "tasks"],
-    specific: ["team", "budget", "market", "roadmap", "milestones", "metrics"],
-  },
-  {
-    name: "enterprise",
-    label: "Enterprise",
-    description: "Coordinate a large, multi-team initiative.",
-    base: ["priorities", "goals", "tasks"],
-    specific: ["team", "budget", "roadmap", "risks", "metrics", "milestones"],
-  },
-];
-
-export const componentByName = (name: string): Component | undefined =>
-  COMPONENTS.find((entry) => entry.name === name);
-
-export const templateByName = (name: string): Template | undefined =>
-  TEMPLATES.find((entry) => entry.name === name);
-
-export const templateComponents = (name: string): string[] => {
-  if (name === "scratch") return [];
-  const match = templateByName(name);
-  if (!match) return [];
-  return Array.from(new Set([...match.base, ...match.specific]));
-};
 
 export const uid = (): string =>
   globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, 16);

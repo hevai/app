@@ -1,6 +1,16 @@
 export type Role = "owner" | "admin" | "editor" | "viewer";
 
-export type Kind = "text" | "number" | "select" | "bars" | "roles" | "tags" | "list";
+export type Kind =
+  | "text"
+  | "number"
+  | "select"
+  | "bars"
+  | "roles"
+  | "tags"
+  | "list"
+  | "pairs"
+  | "ranked"
+  | "dated";
 
 export type View = "card" | "list" | "chart";
 
@@ -43,12 +53,37 @@ export interface Invite {
   expires: number;
 }
 
+export interface Pair {
+  label: string;
+  value: string;
+}
+
+export interface Rank {
+  label: string;
+  level: string;
+}
+
+export interface Dated {
+  label: string;
+  date: string;
+  level: string;
+}
+
+export interface Seed {
+  label: string;
+  value?: string;
+  level?: string;
+  date?: string;
+}
+
 export interface Field {
   name: string;
   label: string;
   kind: Kind;
   options?: string[];
   max?: number;
+  open?: boolean;
+  defaults?: Array<string | Seed>;
 }
 
 export interface Component {
@@ -77,8 +112,33 @@ export interface Block {
   id: string;
   component: string;
   title: string;
+  brief: string;
   data: Record<string, unknown>;
+  options: Record<string, string[]>;
   order: number;
+}
+
+// Prepared by the backend block agent; executed + paid for on the client
+// through the compose.market SDK against the active session.
+export interface AgentPayload {
+  chain: string[];
+  instructions: string;
+  input: string;
+  response_format: { type: string };
+  max_output_tokens: number;
+  temperature: number;
+}
+
+export interface RunBlockInput {
+  wallet: string;
+  project: string;
+  block: string;
+  title: string;
+  brief: string;
+  name: string;
+  description: string;
+  data: Record<string, unknown>;
+  options: Record<string, string[]>;
 }
 
 export interface Navigation {
