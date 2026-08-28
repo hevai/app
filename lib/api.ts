@@ -1,4 +1,4 @@
-import type { Component, Org, Plugin, Profile, Project, Template } from "@/types";
+import type { AgentPayload, Component, Org, Plugin, Profile, Project, RunBlockInput, Template } from "@/types";
 
 const baseUrl = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 export class ApiError extends Error {
@@ -66,6 +66,9 @@ export const api = {
   templates: () => request<Template[]>("GET", "/templates"),
   components: () => request<Component[]>("GET", "/components"),
   plugins: () => request<Plugin[]>("GET", "/plugins"),
+
+  runBlock: (component: string, body: RunBlockInput) =>
+    request<AgentPayload>("POST", `/${component}/run`, body),
 
   profile: (wallet: string) => request<Profile>("GET", `/users/${wallet}`),
   updateProfile: (wallet: string, patch: Partial<Profile>) =>
