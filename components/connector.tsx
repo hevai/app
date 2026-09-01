@@ -10,6 +10,7 @@ import { useScope } from "@/contexts/scope";
 import { useSession } from "@/hooks/use-session";
 import { getDeviceId, isDesktop } from "@/lib/platform";
 import { useNetwork } from "@/contexts/network";
+import { useLocale } from "@/contexts/locale";
 import { Avatar } from "./avatar";
 import { ImagePicker } from "./image-picker";
 import { initials } from "@/lib/utils";
@@ -79,6 +80,7 @@ export function Connector() {
   const { orgs } = useScope();
   const { clearSession } = useSession();
   const { selectedNetwork } = useNetwork();
+  const { t } = useLocale();
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -111,15 +113,15 @@ export function Connector() {
             const params = new URLSearchParams({ device_id: getDeviceId(), network: selectedNetwork });
             await openUrl(`${base}/connect-local?${params.toString()}`);
           }}
-        >
-          Connect
+          >
+          {t("connector.connect")}
         </button>
       );
     }
     if (!chain || !accountAbstraction) {
       return (
         <button type="button" className="btn" disabled>
-          {isConnecting ? "Signing in…" : "Loading…"}
+          {isConnecting ? t("connector.signingIn") : t("connector.loading")}
         </button>
       );
     }
@@ -131,12 +133,12 @@ export function Connector() {
         accountAbstraction={accountAbstraction}
         autoConnect
         connectButton={{
-          label: "Connect",
+          label: t("connector.connect"),
           className: "btn btn-primary",
         }}
         connectModal={{
           size: "compact",
-          title: "Connect to hevai",
+          title: t("connector.modalTitle"),
           titleIcon: undefined,
           showThirdwebBranding: false,
         }}
@@ -165,9 +167,7 @@ export function Connector() {
         aria-expanded={menuOpen}
       >
         <Avatar name={name} image={user?.image} />
-        <span style={{ maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis" }}>
-          {name}
-        </span>
+        <span className="connector-name">{name}</span>
         <ChevronDown size={14} />
       </button>
 
@@ -182,13 +182,13 @@ export function Connector() {
                 type="button"
                 className="btn btn-icon btn-ghost"
                 style={{ width: 24, height: 24 }}
-                aria-label="Copy wallet address"
-                title="Copy wallet address"
+                aria-label={t("connector.copyAddress")}
+                title={t("connector.copyAddress")}
                 onClick={async () => {
                   if (!address) return;
                   await navigator.clipboard.writeText(address);
                   setCopied(true);
-                  toast.success("Wallet address copied");
+                  toast.success(t("connector.addressCopied"));
                   window.setTimeout(() => setCopied(false), 2_000);
                 }}
               >
@@ -210,12 +210,12 @@ export function Connector() {
               }}
             >
               <Pencil size={14} />
-              Edit profile
+              {t("connector.editProfile")}
             </button>
           </div>
           <div className="menu-sep" />
 
-          <div className="menu-label">Workspace</div>
+          <div className="menu-label">{t("connector.workspace")}</div>
           <button
             type="button"
             className="menu-item"
@@ -223,11 +223,11 @@ export function Connector() {
             onClick={() => go("/")}
           >
             <User size={15} />
-            <span style={{ flex: 1 }}>Personal</span>
+            <span style={{ flex: 1 }}>{t("connector.personal")}</span>
             {isPersonal ? <Check size={14} style={{ color: "var(--accent)" }} /> : null}
           </button>
 
-          {orgs.length > 0 ? <div className="menu-label">Organizations</div> : null}
+          {orgs.length > 0 ? <div className="menu-label">{t("connector.organizations")}</div> : null}
           {orgs.map((org) => {
             const active = location.pathname === `/org/${org.id}`;
             return (
@@ -252,7 +252,7 @@ export function Connector() {
           })}
           <button type="button" className="menu-item" onClick={() => go("/org/new")}>
             <Plus size={15} />
-            Create organization
+            {t("connector.createOrg")}
           </button>
 
           <div className="menu-sep" />
@@ -267,7 +267,7 @@ export function Connector() {
             }}
           >
             <LogOut size={15} />
-            Sign out
+            {t("connector.signOut")}
           </button>
         </div>
       ) : null}
@@ -280,7 +280,7 @@ export function Connector() {
       image={user?.image ?? ""}
       onSave={async (patch) => {
         await updateProfile(patch);
-        toast.success("Profile updated");
+        toast.success(t("connector.profileUpdated"));
         setProfileOpen(false);
       }}
     />
@@ -301,6 +301,7 @@ function ProfileModal({
   image: string;
   onSave: (patch: { name?: string; image?: string }) => Promise<void>;
 }) {
+  const { t } = useLocale();
   const [nameDraft, setNameDraft] = useState("");
   const [imageDraft, setImageDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -335,8 +336,8 @@ function ProfileModal({
     <div className="overlay" onClick={onClose}>
       <div className="modal modal-sm" onClick={(event) => event.stopPropagation()}>
         <div className="modal-head">
-          <span className="modal-title">Edit profile</span>
-          <button type="button" className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Close">
+          <span className="modal-title">{t("connector.editProfile")}</span>
+          <button type="button" className="btn btn-ghost btn-icon" onClick={onClose} aria-label={t("common.close")}>
             <X size={16} />
           </button>
         </div>
@@ -346,7 +347,7 @@ function ProfileModal({
               image={imageDraft}
               size={72}
               shape="circle"
-              label="Change avatar"
+              label={t("connector.changeAvatar")}
               fallback={<span style={{ fontSize: "var(--fs-lg)", fontWeight: 600 }}>{initials(nameDraft || "?")}</span>}
               onPick={(url) => setImageDraft(url)}
             />
@@ -358,25 +359,25 @@ function ProfileModal({
               style={{ alignSelf: "center" }}
               onClick={() => setImageDraft("")}
             >
-              Remove avatar
+              {t("connector.removeAvatar")}
             </button>
           ) : null}
           <div className="field-group">
-            <label className="label">Display name</label>
+            <label className="label">{t("connector.displayName")}</label>
             <input
               className="input"
               value={nameDraft}
-              placeholder="Your name"
+              placeholder={t("connector.namePlaceholder")}
               onChange={(e) => setNameDraft(e.target.value)}
             />
           </div>
         </div>
         <div className="modal-foot">
           <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button type="button" className="btn btn-primary" onClick={save} disabled={busy}>
-            {busy ? "Saving…" : "Save"}
+            {busy ? t("connector.saving") : t("common.save")}
           </button>
         </div>
       </div>

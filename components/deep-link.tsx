@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { toast } from "sonner";
 import { useSession } from "@/hooks/use-session";
+import { useLocale } from "@/contexts/locale";
 import { getDeviceId, isDesktop } from "@/lib/platform";
 
 interface DeepLinkEvent {
@@ -21,6 +22,7 @@ function parseToken(raw: string): string | null {
 
 export function DeepLinkHandler() {
   const { redeemLocalLink } = useSession();
+  const { t, err } = useLocale();
   const sequence = useRef(0);
 
   useEffect(() => {
@@ -33,10 +35,10 @@ export function DeepLinkHandler() {
       const current = ++sequence.current;
       try {
         await redeemLocalLink(token, getDeviceId());
-        if (current === sequence.current) toast.success("Desktop session connected");
+        if (current === sequence.current) toast.success(t("link.connected"));
       } catch (cause) {
         if (current === sequence.current) {
-          toast.error(cause instanceof Error ? cause.message : "Desktop authorization failed");
+          toast.error(err(cause, "link.failed"));
         }
       }
     };
@@ -49,7 +51,7 @@ export function DeepLinkHandler() {
     })();
 
     return () => dispose?.();
-  }, [redeemLocalLink]);
+  }, [redeemLocalLink, t, err]);
 
   return null;
 }

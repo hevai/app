@@ -1,6 +1,8 @@
 import { GripVertical, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import type { Block, Component, Slice } from "@/types";
-import { BRIEF_WORDS, blockReady, countWords, formatDate, readyHint, toDated, toPair, toRank } from "@/lib/utils";
+import { BRIEF_WORDS, blockReady, countWords, toDated, toPair, toRank } from "@/lib/utils";
+import { softLower } from "@/lib/lang";
+import { useLocale } from "@/contexts/locale";
 import { Icon } from "./icon";
 import { Bars } from "./bars";
 
@@ -17,8 +19,9 @@ interface CardProps {
 }
 
 export function Body({ block, component }: { block: Block; component?: Component }) {
+  const { t, optionLabel, formatDate } = useLocale();
   if (!component || component.fields.length === 0) {
-    return <div className="card-empty">Nothing here yet — click to fill this block.</div>;
+    return <div className="card-empty">{t("block.empty")}</div>;
   }
 
   const parts: React.ReactNode[] = [];
@@ -35,14 +38,14 @@ export function Body({ block, component }: { block: Block; component?: Component
         parts.push(
           <div className="rows" key={field.name}>
             {members.length === 0 ? (
-              <div className="card-empty">No members yet.</div>
+              <div className="card-empty">{t("block.noMembers")}</div>
             ) : (
               members.map((member, index) => (
                 <div className="row" key={`${member.name}-${index}`}>
                   <span className="row-dot" />
                   <span className="row-label">{member.name}</span>
                   <span className="chip" data-tone="accent">
-                    {member.role}
+                    {optionLabel(component, member.role)}
                   </span>
                 </div>
               ))
@@ -56,7 +59,7 @@ export function Body({ block, component }: { block: Block; component?: Component
         parts.push(
           <div className="rows" key={field.name}>
             {items.length === 0 ? (
-              <div className="card-empty">No items yet.</div>
+              <div className="card-empty">{t("block.noItems")}</div>
             ) : (
               items.map((item, index) => (
                 <div className="row" key={index}>
@@ -74,7 +77,7 @@ export function Body({ block, component }: { block: Block; component?: Component
         parts.push(
           <div className="tags" key={field.name}>
             {tags.length === 0 ? (
-              <div className="card-empty">No tags yet.</div>
+              <div className="card-empty">{t("block.noTags")}</div>
             ) : (
               tags.map((tag, index) => (
                 <span className="chip" key={index}>
@@ -91,7 +94,7 @@ export function Body({ block, component }: { block: Block; component?: Component
         parts.push(
           <div className="rows" key={field.name}>
             {rows.length === 0 ? (
-              <div className="card-empty">No {field.label.toLowerCase()} yet.</div>
+              <div className="card-empty">{t("block.noField", { label: softLower(field.label) })}</div>
             ) : (
               rows.map((row, index) => (
                 <div className="row" key={index}>
@@ -110,13 +113,13 @@ export function Body({ block, component }: { block: Block; component?: Component
         parts.push(
           <div className="rows" key={field.name}>
             {rows.length === 0 ? (
-              <div className="card-empty">No {field.label.toLowerCase()} yet.</div>
+              <div className="card-empty">{t("block.noField", { label: softLower(field.label) })}</div>
             ) : (
               rows.map((row, index) => (
                 <div className="row" key={index}>
                   <span className="row-dot" />
                   <span className="row-label">{row.label}</span>
-                  {row.level ? <span className="chip">{row.level}</span> : null}
+                  {row.level ? <span className="chip">{optionLabel(component, row.level)}</span> : null}
                 </div>
               ))
             )}
@@ -129,14 +132,14 @@ export function Body({ block, component }: { block: Block; component?: Component
         parts.push(
           <div className="rows" key={field.name}>
             {rows.length === 0 ? (
-              <div className="card-empty">No {field.label.toLowerCase()} yet.</div>
+              <div className="card-empty">{t("block.noField", { label: softLower(field.label) })}</div>
             ) : (
               rows.map((row, index) => (
                 <div className="row" key={index}>
                   <span className="row-dot" />
                   <span className="row-label">{row.label}</span>
                   {row.date ? <span className="row-date">{formatDate(row.date)}</span> : null}
-                  {row.level ? <span className="chip">{row.level}</span> : null}
+                  {row.level ? <span className="chip">{optionLabel(component, row.level)}</span> : null}
                 </div>
               ))
             )}
@@ -153,7 +156,7 @@ export function Body({ block, component }: { block: Block; component?: Component
             </div>
           ) : (
             <div className="card-empty" key={field.name}>
-              No details yet.
+              {t("block.noDetails")}
             </div>
           ),
         );
@@ -164,6 +167,7 @@ export function Body({ block, component }: { block: Block; component?: Component
 }
 
 export function Card({ block, component, dragging, over, busy, onEdit, onRemove, onSpark, dragHandleProps }: CardProps) {
+  const { t } = useLocale();
   const ready = blockReady(block, component);
   const words = Math.min(countWords(block.brief ?? ""), BRIEF_WORDS);
   return (
@@ -174,14 +178,14 @@ export function Card({ block, component, dragging, over, busy, onEdit, onRemove,
         </span>
         <span className="card-title">{component?.label ?? block.title}</span>
         <span className="chip chip-progress" data-done={ready || undefined}>
-          {words}/{BRIEF_WORDS} words
+          {t("block.words", { words, max: BRIEF_WORDS })}
         </span>
         <span className="card-actions">
           <button
             type="button"
             className="card-tool"
             data-drag="true"
-            aria-label="Drag to reorder"
+            aria-label={t("block.drag")}
             {...dragHandleProps}
           >
             <GripVertical size={15} />
@@ -189,7 +193,7 @@ export function Card({ block, component, dragging, over, busy, onEdit, onRemove,
           <button
             type="button"
             className="card-tool"
-            aria-label="Edit component"
+            aria-label={t("block.edit")}
             onClick={onEdit}
           >
             <Pencil size={14} />
@@ -201,8 +205,20 @@ export function Card({ block, component, dragging, over, busy, onEdit, onRemove,
             data-ready={ready || undefined}
             data-busy={busy || undefined}
             disabled={busy || undefined}
-            aria-label={busy ? "AI completing this block" : ready ? "AI complete this block" : "AI complete (fill the block first)"}
-            title={busy ? "The block agent is working…" : ready ? "Ask the block agent to complete this block" : readyHint(block, component)}
+            aria-label={
+              busy
+                ? t("spark.busyAria")
+                : ready
+                  ? t("spark.goAria")
+                  : t("spark.blockedAria")
+            }
+            title={
+              busy
+                ? t("spark.busyTitle")
+                : ready
+                  ? t("spark.goTitle")
+                  : t("spark.readyHint", { count: BRIEF_WORDS })
+            }
             onClick={onSpark}
           >
             {busy ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
@@ -211,7 +227,7 @@ export function Card({ block, component, dragging, over, busy, onEdit, onRemove,
             <button
               type="button"
               className="card-tool"
-              aria-label="Remove component"
+              aria-label={t("block.remove")}
               onClick={onRemove}
             >
               <Trash2 size={14} />

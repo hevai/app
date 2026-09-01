@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { ChevronDown, Plus, Check } from "lucide-react";
 import { useCatalog } from "@/contexts/catalog";
+import { useLocale } from "@/contexts/locale";
 import type { Component } from "@/types";
 import { Icon } from "./icon";
 
@@ -50,6 +51,7 @@ function ToolItem({
 
 export function Toolbox({ selected, onSelect, onAdd, draggable = false }: ToolboxProps) {
   const { components, ready } = useCatalog();
+  const { t } = useLocale();
   const [folded, setFolded] = useState(false);
 
   return (
@@ -64,7 +66,7 @@ export function Toolbox({ selected, onSelect, onAdd, draggable = false }: Toolbo
           size={15}
           style={{ transform: folded ? "rotate(-90deg)" : "none", transition: "transform var(--t-fast)" }}
         />
-        Component toolbox
+        {t("toolbox.title")}
         <span className="hint" style={{ marginLeft: "auto" }}>
           {components.length}
         </span>
@@ -82,7 +84,7 @@ export function Toolbox({ selected, onSelect, onAdd, draggable = false }: Toolbo
         ))}
         {components.length === 0 ? (
           <span className="hint" style={{ padding: "var(--sp-2)" }}>
-            {ready ? "No components available." : "Loading components…"}
+            {ready ? t("toolbox.none") : t("toolbox.loading")}
           </span>
         ) : null}
       </div>

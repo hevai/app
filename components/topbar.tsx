@@ -2,15 +2,18 @@ import { useLocation } from "react-router-dom";
 import { useProjects } from "@/contexts/projects";
 import { useScope } from "@/contexts/scope";
 import { useIdentity } from "@/contexts/identity";
+import { useLocale } from "@/contexts/locale";
 import { Connector } from "./connector";
 import { SessionControl } from "./session";
 import { NetworkSelector } from "./network-selector";
+import { Switcher } from "./switcher";
 
 export function Topbar() {
   const location = useLocation();
   const { getProject } = useProjects();
   const { getOrg } = useScope();
   const { user, isConnected } = useIdentity();
+  const { t } = useLocale();
 
   const projectMatch = location.pathname.match(/^\/project\/([^/]+)/);
   const orgMatch = location.pathname.match(/^\/org\/([^/]+)/);
@@ -20,17 +23,17 @@ export function Topbar() {
 
   let title = "hevai";
   let sub = isConnected
-    ? user?.name || user?.email || "Your projects"
-    : "Connect to start building";
+    ? user?.name || user?.email || t("topbar.defaultSub")
+    : t("topbar.connectSub");
   if (project) {
     title = project.name;
-    sub = project.description || "Project";
+    sub = project.description || t("topbar.projectFallback");
   } else if (orgId === "new") {
-    title = "New organization";
-    sub = "Create a shared space for your team";
+    title = t("topbar.newOrg");
+    sub = t("topbar.newOrgSub");
   } else if (org) {
     title = org.name;
-    sub = "Manage members and invites";
+    sub = t("topbar.orgSub");
   }
 
   return (
@@ -42,6 +45,7 @@ export function Topbar() {
       <div className="topbar-spacer" />
       <NetworkSelector />
       <SessionControl />
+      <Switcher />
       <Connector />
     </header>
   );

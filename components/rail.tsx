@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Plus } from "lucide-react";
 import { useProjects } from "@/contexts/projects";
 import { useIdentity } from "@/contexts/identity";
+import { useLocale } from "@/contexts/locale";
 import { Icon, templateIcon } from "./icon";
 import { Logo } from "./logo";
 
@@ -12,6 +13,7 @@ interface RailProps {
 export function Rail({ onCreate }: RailProps) {
   const { projects } = useProjects();
   const { isConnected } = useIdentity();
+  const { t } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const isHome = location.pathname === "/" || location.pathname === "";
@@ -23,8 +25,8 @@ export function Rail({ onCreate }: RailProps) {
         className="rail-logo"
         data-active={isHome || undefined}
         onClick={() => navigate("/")}
-        aria-label="hevai home"
-        title="hevai — home"
+        aria-label={t("rail.logoAria")}
+        title={t("rail.logoTitle")}
       >
         <Logo size={36} />
       </button>
@@ -35,8 +37,8 @@ export function Rail({ onCreate }: RailProps) {
           className="rail-item"
           data-active={isHome || undefined}
           onClick={() => navigate("/")}
-          aria-label="Home"
-          title="Home"
+          aria-label={t("rail.home")}
+          title={t("rail.home")}
         >
           <Home size={18} />
         </button>
@@ -68,7 +70,7 @@ export function Rail({ onCreate }: RailProps) {
       </div>
 
       {isConnected ? (
-        <button type="button" className="rail-plus" onClick={onCreate} aria-label="Create project" title="Create project">
+        <button type="button" className="rail-plus" onClick={onCreate} aria-label={t("rail.create")} title={t("rail.create")}>
           <Plus size={20} />
         </button>
       ) : null}

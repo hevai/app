@@ -3,6 +3,8 @@ import { X, Plus, Trash2 } from "lucide-react";
 import type { Block, Component, Dated, Field, Pair, Rank, Slice } from "@/types";
 import { Bars } from "./bars";
 import { uid } from "@/schema";
+import { softLower } from "@/lib/lang";
+import { useLocale } from "@/contexts/locale";
 import { BRIEF_WORDS, countWords, normalizeData } from "@/lib/utils";
 
 interface Patch {
@@ -24,9 +26,10 @@ function FieldLabel({ field }: { field: Field }) {
   return <label className="label" htmlFor={`field-${field.name}`}>{field.label}</label>;
 }
 
-export function Editor({ block, component, open, submitLabel = "Save", onClose, onSave }: EditorProps) {
+export function Editor({ block, component, open, submitLabel, onClose, onSave }: EditorProps) {
+  const { t, lang, optionLabel } = useLocale();
   const [brief, setBrief] = useState(block.brief ?? "");
-  const [data, setData] = useState<Record<string, unknown>>(() => normalizeData(block.data, component));
+  const [data, setData] = useState<Record<string, unknown>>(() => normalizeData(block.data, component, lang));
   const [options, setOptions] = useState<Record<string, string[]>>(block.options ?? {});
   const [texts, setTexts] = useState<Record<string, string>>({});
   const [picks, setPicks] = useState<Record<string, string>>(() => {
@@ -156,10 +159,10 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
       <div className="modal" onClick={(event) => event.stopPropagation()}>
         <div className="modal-head">
           <div className="modal-titles">
-            <span className="modal-title">Fill {component?.label ?? block.title}</span>
+            <span className="modal-title">{t("editor.fill", { component: component?.label ?? block.title })}</span>
             {component?.description ? <span className="modal-sub">{component.description}</span> : null}
           </div>
-          <button type="button" className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Close">
+          <button type="button" className="btn btn-ghost btn-icon" onClick={onClose} aria-label={t("common.close")}>
             <X size={16} />
           </button>
         </div>
@@ -168,7 +171,7 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
           <div className="field-group" style={{ marginBottom: "var(--sp-3)" }}>
             <label className="label" htmlFor="field-brief">
               <span className="req" aria-hidden="true">*</span>
-              Brief
+              {t("editor.brief")}
             </label>
             <textarea
               id="field-brief"
@@ -176,11 +179,11 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
               value={brief}
               autoFocus={words < BRIEF_WORDS}
               aria-required="true"
-              placeholder="Short context for the block agent: what should it know about this area of the project?"
+              placeholder={t("editor.briefPlaceholder")}
               onChange={(e) => setBrief(e.target.value)}
             />
             <span className="counter" data-ok={words >= BRIEF_WORDS || undefined}>
-              {words}/{BRIEF_WORDS} words · feeds the block agent
+              {t("editor.briefCounter", { words, max: BRIEF_WORDS })}
             </span>
           </div>
 
@@ -219,7 +222,7 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                   >
                     {fieldOptions.map((option) => (
                       <option key={option} value={option}>
-                        {option}
+                        {optionLabel(component, option)}
                       </option>
                     ))}
                   </select>
@@ -244,7 +247,7 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                             type="button"
                             className="card-tool"
                             onClick={() => removeAt(field, index)}
-                            aria-label="Remove"
+                            aria-label={t("common.remove")}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -256,13 +259,13 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                         id={`field-${field.name}`}
                         className="input"
                         value={texts[field.name] ?? ""}
-                        placeholder={`Add ${field.label.toLowerCase()}`}
+                        placeholder={t("editor.addField", { label: softLower(field.label) })}
                         onChange={(e) => setText(field.name, e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") addString(field);
                         }}
                       />
-                      <button type="button" className="btn btn-icon" onClick={() => addString(field)} aria-label="Add">
+                      <button type="button" className="btn btn-icon" onClick={() => addString(field)} aria-label={t("common.add")}>
                         <Plus size={15} />
                       </button>
                     </div>
@@ -279,14 +282,14 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                             className="select row-select"
                             value={member.role}
                             onChange={(e) => updateMember(field, index, { role: e.target.value })}
-                            aria-label={`Role for ${member.name}`}
+                            aria-label={t("editor.roleFor", { name: member.name })}
                           >
                             {member.role && !fieldOptions.includes(member.role) ? (
-                              <option value={member.role}>{member.role}</option>
+                              <option value={member.role}>{optionLabel(component, member.role)}</option>
                             ) : null}
                             {fieldOptions.map((role) => (
                               <option key={role} value={role}>
-                                {role}
+                                {optionLabel(component, role)}
                               </option>
                             ))}
                           </select>
@@ -294,7 +297,7 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                             type="button"
                             className="card-tool"
                             onClick={() => removeAt(field, index)}
-                            aria-label="Remove"
+                            aria-label={t("common.remove")}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -306,7 +309,7 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                         id={`field-${field.name}`}
                         className="input"
                         value={texts[field.name] ?? ""}
-                        placeholder="Member name"
+                        placeholder={t("editor.memberName")}
                         onChange={(e) => setText(field.name, e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") addMember(field);
@@ -314,17 +317,17 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                       />
                       <select
                         className="select"
-                        style={{ width: 130 }}
+                        style={{ minWidth: 130 }}
                         value={picks[field.name] ?? fieldOptions[0] ?? ""}
                         onChange={(e) => setPicks((current) => ({ ...current, [field.name]: e.target.value }))}
                       >
                         {fieldOptions.map((role) => (
                           <option key={role} value={role}>
-                            {role}
+                            {optionLabel(component, role)}
                           </option>
                         ))}
                       </select>
-                      <button type="button" className="btn btn-icon" onClick={() => addMember(field)} aria-label="Add member">
+                      <button type="button" className="btn btn-icon" onClick={() => addMember(field)} aria-label={t("editor.addMember")}>
                         <Plus size={15} />
                       </button>
                     </div>
@@ -339,20 +342,20 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                           <input
                             className="input row-input"
                             value={row.label}
-                            placeholder="Name"
+                            placeholder={t("editor.pairName")}
                             onChange={(e) => updatePair(field, index, { label: e.target.value })}
                           />
                           <input
                             className="input row-input"
                             value={row.value}
-                            placeholder="Target / value"
+                            placeholder={t("editor.pairValue")}
                             onChange={(e) => updatePair(field, index, { value: e.target.value })}
                           />
                           <button
                             type="button"
                             className="card-tool"
                             onClick={() => removeAt(field, index)}
-                            aria-label="Remove"
+                            aria-label={t("common.remove")}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -364,13 +367,13 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                         id={`field-${field.name}`}
                         className="input"
                         value={texts[field.name] ?? ""}
-                        placeholder={`Add ${field.label.toLowerCase()}`}
+                        placeholder={t("editor.addField", { label: softLower(field.label) })}
                         onChange={(e) => setText(field.name, e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") addPair(field);
                         }}
                       />
-                      <button type="button" className="btn btn-icon" onClick={() => addPair(field)} aria-label="Add">
+                      <button type="button" className="btn btn-icon" onClick={() => addPair(field)} aria-label={t("common.add")}>
                         <Plus size={15} />
                       </button>
                     </div>
@@ -393,10 +396,10 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                             value={row.level}
                             onChange={(e) => updateRank(field, index, { level: e.target.value })}
                           >
-                            <option value="">level</option>
+                            <option value="">{t("editor.level")}</option>
                             {fieldOptions.map((option) => (
                               <option key={option} value={option}>
-                                {option}
+                                {optionLabel(component, option)}
                               </option>
                             ))}
                           </select>
@@ -404,7 +407,7 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                             type="button"
                             className="card-tool"
                             onClick={() => removeAt(field, index)}
-                            aria-label="Remove"
+                            aria-label={t("common.remove")}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -416,7 +419,7 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                         id={`field-${field.name}`}
                         className="input"
                         value={texts[field.name] ?? ""}
-                        placeholder={`Add ${field.label.toLowerCase()}`}
+                        placeholder={t("editor.addField", { label: softLower(field.label) })}
                         onChange={(e) => setText(field.name, e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") addRank(field);
@@ -424,17 +427,17 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                       />
                       <select
                         className="select"
-                        style={{ width: 110 }}
+                        style={{ minWidth: 110 }}
                         value={picks[field.name] ?? fieldOptions[0] ?? ""}
                         onChange={(e) => setPicks((current) => ({ ...current, [field.name]: e.target.value }))}
                       >
                         {fieldOptions.map((option) => (
                           <option key={option} value={option}>
-                            {option}
+                            {optionLabel(component, option)}
                           </option>
                         ))}
                       </select>
-                      <button type="button" className="btn btn-icon" onClick={() => addRank(field)} aria-label="Add">
+                      <button type="button" className="btn btn-icon" onClick={() => addRank(field)} aria-label={t("common.add")}>
                         <Plus size={15} />
                       </button>
                     </div>
@@ -463,10 +466,10 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                             value={row.level}
                             onChange={(e) => updateDated(field, index, { level: e.target.value })}
                           >
-                            <option value="">status</option>
+                            <option value="">{t("editor.status")}</option>
                             {fieldOptions.map((option) => (
                               <option key={option} value={option}>
-                                {option}
+                                {optionLabel(component, option)}
                               </option>
                             ))}
                           </select>
@@ -474,7 +477,7 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                             type="button"
                             className="card-tool"
                             onClick={() => removeAt(field, index)}
-                            aria-label="Remove"
+                            aria-label={t("common.remove")}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -486,7 +489,7 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                         id={`field-${field.name}`}
                         className="input"
                         value={texts[field.name] ?? ""}
-                        placeholder={`Add ${field.label.toLowerCase()}`}
+                        placeholder={t("editor.addField", { label: softLower(field.label) })}
                         onChange={(e) => setText(field.name, e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") addDated(field);
@@ -500,17 +503,17 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                       />
                       <select
                         className="select"
-                        style={{ width: 110 }}
+                        style={{ minWidth: 110 }}
                         value={picks[field.name] ?? fieldOptions[0] ?? ""}
                         onChange={(e) => setPicks((current) => ({ ...current, [field.name]: e.target.value }))}
                       >
                         {fieldOptions.map((option) => (
                           <option key={option} value={option}>
-                            {option}
+                            {optionLabel(component, option)}
                           </option>
                         ))}
                       </select>
-                      <button type="button" className="btn btn-icon" onClick={() => addDated(field)} aria-label="Add">
+                      <button type="button" className="btn btn-icon" onClick={() => addDated(field)} aria-label={t("common.add")}>
                         <Plus size={15} />
                       </button>
                     </div>
@@ -519,16 +522,16 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
 
                 {field.open && field.kind !== "bars" && fieldOptions.length > 0 ? (
                   <div className="options-editor">
-                    <span className="hint">Customize {field.label.toLowerCase()} options · saved with this block</span>
+                    <span className="hint">{t("editor.customize", { label: softLower(field.label) })}</span>
                     <div className="tags">
                       {fieldOptions.map((option, index) => (
                         <span className="chip" key={option}>
-                          {option}
+                          {optionLabel(component, option)}
                           <button
                             type="button"
                             className="chip-x"
                             onClick={() => removeOption(field, index)}
-                            aria-label={`Remove ${option}`}
+                            aria-label={t("editor.removeOption", { option })}
                           >
                             <X size={11} />
                           </button>
@@ -539,13 +542,13 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
                       <input
                         className="input"
                         value={texts[`${field.name}:option`] ?? ""}
-                        placeholder="Add option"
+                        placeholder={t("editor.addOption")}
                         onChange={(e) => setText(`${field.name}:option`, e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") addOption(field);
                         }}
                       />
-                      <button type="button" className="btn btn-icon" onClick={() => addOption(field)} aria-label="Add option">
+                      <button type="button" className="btn btn-icon" onClick={() => addOption(field)} aria-label={t("editor.addOption")}>
                         <Plus size={15} />
                       </button>
                     </div>
@@ -558,13 +561,13 @@ export function Editor({ block, component, open, submitLabel = "Save", onClose, 
 
         <div className="modal-foot">
           <span className="hint" style={{ marginRight: "auto" }}>
-            <span className="req">*</span> brief needs at least {BRIEF_WORDS} words
+            <span className="req">*</span> {t("editor.briefFoot", { count: BRIEF_WORDS })}
           </span>
           <button type="button" className="btn btn-ghost" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button type="button" className="btn btn-primary" disabled={!briefValid} onClick={save}>
-            {submitLabel}
+            {submitLabel ?? t("common.save")}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { GripVertical, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import type { Block, Component } from "@/types";
-import { BRIEF_WORDS, blockReady, countWords, readyHint } from "@/lib/utils";
+import { BRIEF_WORDS, blockReady, countWords } from "@/lib/utils";
+import { useLocale } from "@/contexts/locale";
 import { Icon } from "./icon";
 import { Body } from "./card";
 
@@ -29,6 +30,7 @@ export function Section({
   dragHandleProps,
   sectionRef,
 }: SectionProps) {
+  const { t } = useLocale();
   const ready = blockReady(block, component);
   const words = Math.min(countWords(block.brief ?? ""), BRIEF_WORDS);
   return (
@@ -46,7 +48,7 @@ export function Section({
           <span className="section-title">
             {component?.label ?? block.title}
             <span className="chip chip-progress" data-done={ready || undefined}>
-              {words}/{BRIEF_WORDS} words
+              {t("block.words", { words, max: BRIEF_WORDS })}
             </span>
           </span>
           <span className="section-desc">{component?.description ?? ""}</span>
@@ -56,12 +58,12 @@ export function Section({
             type="button"
             className="card-tool"
             data-drag="true"
-            aria-label="Drag to reorder"
+            aria-label={t("block.drag")}
             {...dragHandleProps}
           >
             <GripVertical size={15} />
           </button>
-          <button type="button" className="card-tool" aria-label="Edit component" onClick={onEdit}>
+          <button type="button" className="card-tool" aria-label={t("block.edit")} onClick={onEdit}>
             <Pencil size={14} />
           </button>
           <button
@@ -71,14 +73,26 @@ export function Section({
             data-ready={ready || undefined}
             data-busy={busy || undefined}
             disabled={busy || undefined}
-            aria-label={busy ? "AI completing this block" : ready ? "AI complete this block" : "AI complete (fill the block first)"}
-            title={busy ? "The block agent is working…" : ready ? "Ask the block agent to complete this block" : readyHint(block, component)}
+            aria-label={
+              busy
+                ? t("spark.busyAria")
+                : ready
+                  ? t("spark.goAria")
+                  : t("spark.blockedAria")
+            }
+            title={
+              busy
+                ? t("spark.busyTitle")
+                : ready
+                  ? t("spark.goTitle")
+                  : t("spark.readyHint", { count: BRIEF_WORDS })
+            }
             onClick={onSpark}
           >
             {busy ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
           </button>
           {onRemove ? (
-            <button type="button" className="card-tool" aria-label="Remove component" onClick={onRemove}>
+            <button type="button" className="card-tool" aria-label={t("block.remove")} onClick={onRemove}>
               <Trash2 size={14} />
             </button>
           ) : null}

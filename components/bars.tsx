@@ -1,5 +1,6 @@
 import { Plus, Trash2 } from "lucide-react";
 import { clamp } from "@/lib/utils";
+import { useLocale } from "@/contexts/locale";
 import type { Slice } from "@/types";
 
 interface BarsProps {
@@ -35,6 +36,7 @@ function redistribute(slices: Slice[], index: number, value: number): Slice[] {
 }
 
 export function Bars({ slices, editable = false, onChange }: BarsProps) {
+  const { t } = useLocale();
   const total = slices.reduce((acc, slice) => acc + slice.value, 0);
 
   const rename = (index: number, name: string) =>
@@ -42,7 +44,7 @@ export function Bars({ slices, editable = false, onChange }: BarsProps) {
 
   const remove = (index: number) => onChange?.(slices.filter((_, i) => i !== index));
 
-  const add = () => onChange?.([...slices, { name: "New slice", value: 0 }]);
+  const add = () => onChange?.([...slices, { name: t("bars.newSlice"), value: 0 }]);
 
   return (
     <div className="bars">
@@ -52,7 +54,7 @@ export function Bars({ slices, editable = false, onChange }: BarsProps) {
             <input
               className="bar-name-input"
               value={slice.name}
-              aria-label="Slice name"
+              aria-label={t("bars.sliceName")}
               onChange={(event) => rename(index, event.target.value)}
             />
           ) : (
@@ -77,7 +79,7 @@ export function Bars({ slices, editable = false, onChange }: BarsProps) {
           )}
           <span className="bar-value">{slice.value}%</span>
           {editable ? (
-            <button type="button" className="card-tool" onClick={() => remove(index)} aria-label="Remove slice">
+            <button type="button" className="card-tool" onClick={() => remove(index)} aria-label={t("bars.removeSlice")}>
               <Trash2 size={13} />
             </button>
           ) : null}
@@ -86,11 +88,11 @@ export function Bars({ slices, editable = false, onChange }: BarsProps) {
       {editable ? (
         <button type="button" className="btn btn-ghost btn-sm" onClick={add}>
           <Plus size={13} />
-          Add slice
+          {t("bars.add")}
         </button>
       ) : null}
       <div className="bar-total" data-ok={total === 100}>
-        total {total}%
+        {t("bars.total", { total })}
       </div>
     </div>
   );

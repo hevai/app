@@ -2,6 +2,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { pickImageFile, uploadImage } from "@/lib/media";
+import { useLocale } from "@/contexts/locale";
 
 interface ImagePickerProps {
   image: string;
@@ -18,8 +19,10 @@ export function ImagePicker({
   onPick,
   size = 44,
   shape = "rounded",
-  label = "Choose an image",
+  label,
 }: ImagePickerProps) {
+  const { t, err } = useLocale();
+  const labelText = label ?? t("picker.choose");
   const [busy, setBusy] = useState(false);
   const activeRef = useRef(false);
 
@@ -33,8 +36,7 @@ export function ImagePicker({
       const url = await uploadImage(file);
       onPick(url);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Upload failed";
-      toast.error(message);
+      toast.error(err(error, "picker.failed"));
     } finally {
       setBusy(false);
       activeRef.current = false;
@@ -49,8 +51,8 @@ export function ImagePicker({
       className="image-picker"
       onClick={handlePick}
       disabled={busy}
-      aria-label={label}
-      title={label}
+      aria-label={labelText}
+      title={labelText}
       style={{ width: size, height: size, borderRadius: radius }}
     >
       {image ? (

@@ -25,9 +25,10 @@ import { defaultData, useProjects } from "@/contexts/projects";
 import { useCatalog } from "@/contexts/catalog";
 import { useIdentity } from "@/contexts/identity";
 import { useSession } from "@/hooks/use-session";
+import { useLocale } from "@/contexts/locale";
 import { api } from "@/lib/api";
 import { coerceData, executeAgent, SessionInvalidError } from "@/lib/compose";
-import { blockReady, readyHint } from "@/lib/utils";
+import { BRIEF_WORDS, blockReady } from "@/lib/utils";
 import type { Block, Component } from "@/types";
 import { Icon, templateIcon } from "./icon";
 import { Toolbox } from "./toolbox";
@@ -88,6 +89,7 @@ export function Canvas({ open, onClose }: CanvasProps) {
   const { templates, componentByName, templateComponents } = useCatalog();
   const { address } = useIdentity();
   const { session, refreshSession } = useSession();
+  const { t, err, lang } = useLocale();
   const navigate = useNavigate();
   const [template, setTemplate] = useState("idea");
   const [name, setName] = useState("");
@@ -106,7 +108,7 @@ export function Canvas({ open, onClose }: CanvasProps) {
       component: componentName,
       title: component?.label ?? componentName,
       brief: "",
-      data: defaultData(component),
+      data: defaultData(component, lang),
       options: {},
       order,
     };
@@ -135,14 +137,14 @@ export function Canvas({ open, onClose }: CanvasProps) {
 
   const options = useMemo(
     () => [
-      ...templates.map((t) => ({ name: t.name, label: t.label, description: t.description })),
+      ...templates.map((tpl) => ({ name: tpl.name, label: tpl.label, description: tpl.description })),
       {
         name: "scratch",
-        label: "Start from scratch",
-        description: "A blank project. Add only the components you need.",
+        label: t("canvas.scratch"),
+        description: t("canvas.scratchDesc"),
       },
     ],
-    [templates],
+    [templates, t],
   );
 
   if (!open) return null;
@@ -173,21 +175,21 @@ export function Canvas({ open, onClose }: CanvasProps) {
   const spark = async (block: Block) => {
     if (running) return;
     if (!name.trim() || !description.trim()) {
-      toast.error("Add a name and a description first — then AI can complete components for you.");
+      toast.error(t("canvas.needProject"));
       return;
     }
     const component = componentByName(block.component);
     if (!component) return;
     if (!blockReady(block, component)) {
-      toast.error(readyHint(block, component));
+      toast.error(t("spark.readyHint", { count: BRIEF_WORDS }));
       return;
     }
     if (!address) {
-      toast.error("Connect your account first.");
+      toast.error(t("spark.needAccount"));
       return;
     }
     if (!session.active || !session.token) {
-      toast.error("Start a session first — the star spends from your session budget.");
+      toast.error(t("spark.needSession"));
       return;
     }
     setRunning(block.id);
@@ -202,20 +204,21 @@ export function Canvas({ open, onClose }: CanvasProps) {
         description,
         data: block.data,
         options: block.options ?? {},
+        locale: lang,
       });
       const result = await executeAgent(payload);
       const data = coerceData(result.data, block.data, component);
       setDrafts((current) =>
         current.map((draft) => (draft.id === block.id ? { ...draft, data } : draft)),
       );
-      toast.success(`${component.label} completed by ${result.model}`);
+      toast.success(t("spark.completed", { component: component.label, model: result.model }));
       void refreshSession();
     } catch (cause) {
       if (cause instanceof SessionInvalidError) {
-        toast.error("Session problem — check your budget or start a new session.");
+        toast.error(t("spark.sessionProblem"));
         void refreshSession();
       } else {
-        toast.error(cause instanceof Error ? cause.message : "AI completion failed");
+        toast.error(err(cause, "spark.failed"));
       }
     } finally {
       setRunning(null);
@@ -265,16 +268,16 @@ export function Canvas({ open, onClose }: CanvasProps) {
   const handleCreate = () => {
     setTried(true);
     if (!nameValid) {
-      toast.error("Give your project a name first.");
+      toast.error(t("canvas.needName"));
       return;
     }
     if (!descriptionValid) {
-      toast.error("Add a short description — the agents need it for context.");
+      toast.error(t("canvas.needDesc"));
       return;
     }
     const incomplete = drafts.find((draft) => !blockReady(draft, componentByName(draft.component)));
     if (incomplete) {
-      toast.error("Every component needs a brief of at least 10 words before it can be added.");
+      toast.error(t("canvas.needBrief", { count: BRIEF_WORDS }));
       setEditing(incomplete);
       return;
     }
@@ -293,8 +296,8 @@ export function Canvas({ open, onClose }: CanvasProps) {
       <div className="overlay" onClick={onClose}>
         <div className="modal modal-wide" onClick={(event) => event.stopPropagation()}>
           <div className="modal-head">
-            <span className="modal-title">Create a project</span>
-            <button type="button" className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Close">
+            <span className="modal-title">{t("canvas.title")}</span>
+            <button type="button" className="btn btn-ghost btn-icon" onClick={onClose} aria-label={t("common.close")}>
               <X size={16} />
             </button>
           </div>
@@ -318,38 +321,38 @@ export function Canvas({ open, onClose }: CanvasProps) {
               ))}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--sp-3)", marginBottom: "var(--sp-4)" }}>
+            <div className="canvas-fields">
               <div className="field-group">
                 <label className="label" htmlFor="canvas-name">
                   <span className="req" aria-hidden="true">*</span>
-                  Project name
+                  {t("canvas.name")}
                 </label>
                 <input
                   id="canvas-name"
                   className="input"
                   value={name}
-                  placeholder="e.g. Apollo"
+                  placeholder={t("canvas.namePlaceholder")}
                   aria-required="true"
                   autoFocus
                   onChange={(e) => setName(e.target.value)}
                 />
-                {tried && !nameValid ? <span className="hint hint-req">Required</span> : null}
+                {tried && !nameValid ? <span className="hint hint-req">{t("common.required")}</span> : null}
               </div>
               <div className="field-group">
                 <label className="label" htmlFor="canvas-description">
                   <span className="req" aria-hidden="true">*</span>
-                  Description
+                  {t("canvas.description")}
                 </label>
                 <input
                   id="canvas-description"
                   className="input"
                   value={description}
-                  placeholder="What is this project about?"
+                  placeholder={t("canvas.descPlaceholder")}
                   aria-required="true"
                   onChange={(e) => setDescription(e.target.value)}
                 />
                 {tried && !descriptionValid ? (
-                  <span className="hint hint-req">Required — it gives the agents context</span>
+                  <span className="hint hint-req">{t("canvas.descRequired")}</span>
                 ) : null}
               </div>
             </div>
@@ -365,7 +368,7 @@ export function Canvas({ open, onClose }: CanvasProps) {
                 <div className="canvas-side">
                   <Toolbox selected={selected} onSelect={toggle} draggable />
                   <span className="hint">
-                    Click a component to add it and start filling it. Drag it to place it.
+                    {t("canvas.toolboxHint")}
                   </span>
                 </div>
 
@@ -377,9 +380,9 @@ export function Canvas({ open, onClose }: CanvasProps) {
                   >
                     {drafts.length === 0 ? (
                       <div className="canvas-drop-hint">
-                        Drag components here from the toolbox — or click them to add.
+                        {t("canvas.dropHint1")}
                         <br />
-                        Each component opens ready for you to fill it in.
+                        {t("canvas.dropHint2")}
                       </div>
                     ) : (
                       drafts.map((draft) => (
@@ -413,14 +416,14 @@ export function Canvas({ open, onClose }: CanvasProps) {
 
           <div className="modal-foot">
             <span className="hint" style={{ marginRight: "auto" }}>
-              {drafts.length} component{drafts.length === 1 ? "" : "s"} in the project ·{" "}
-              <span className="req">*</span> required
+              {t(drafts.length === 1 ? "canvas.foot.one" : "canvas.foot.many", { count: drafts.length })} ·{" "}
+              <span className="req">*</span> {t("canvas.footRequired")}
             </span>
             <button type="button" className="btn btn-ghost" onClick={onClose}>
-              Cancel
+              {t("common.cancel")}
             </button>
             <button type="button" className="btn btn-primary" onClick={handleCreate}>
-              Create project
+              {t("canvas.create")}
             </button>
           </div>
         </div>
@@ -432,7 +435,7 @@ export function Canvas({ open, onClose }: CanvasProps) {
           block={editing}
           component={componentByName(editing.component)}
           open
-          submitLabel={addingId === editing.id ? "Add component" : "Save"}
+          submitLabel={addingId === editing.id ? t("project.addComponent") : t("common.save")}
           onClose={() => {
             if (addingId === editing.id) {
               setDrafts((current) => current.filter((draft) => draft.id !== editing.id));

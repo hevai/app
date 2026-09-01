@@ -3,12 +3,14 @@ import { useSwitchActiveWalletChain } from "thirdweb/react";
 import type { NetworkId } from "@compose-market/sdk/chains";
 import { useNetwork } from "@/contexts/network";
 import { useSession } from "@/hooks/use-session";
+import { useLocale } from "@/contexts/locale";
 import { evmChainId, getChainObject, isEvmNetwork } from "@/lib/chains";
 import { isDesktop } from "@/lib/platform";
 
 export function NetworkSelector() {
   const { chains, selectedNetwork, setSelectedNetwork, isLoading } = useNetwork();
   const { session, clearSession } = useSession();
+  const { t } = useLocale();
   const switchChain = useSwitchActiveWalletChain();
   const current = chains.find((chain) => chain.network === selectedNetwork);
   const evmChains = chains.filter((chain) => isEvmNetwork(chain.network));
@@ -34,7 +36,7 @@ export function NetworkSelector() {
     <label className="network-selector" data-testnet={current?.isTestnet ?? false}>
       <span className="network-dot" />
       <select
-        aria-label="Payment network"
+        aria-label={t("network.label")}
         value={selectedNetwork}
         disabled={isLoading && chains.length === 0}
         onChange={(event) => void changeNetwork(event.target.value as NetworkId)}
