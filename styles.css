@@ -2332,3 +2332,127 @@ button {
     cursor: progress;
     opacity: 1;
 }
+/* ============================================================================
+   share dialog — invite link + QR + share targets
+   ============================================================================ */
+.share {
+    width: min(560px, 94vw);
+}
+
+.share-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+}
+
+.share-url {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    min-width: 0;
+}
+
+.share-link {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    color: var(--muted);
+    background: var(--glass);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: var(--sp-2) var(--sp-3);
+    user-select: text;
+}
+
+.share-copy {
+    flex-shrink: 0;
+}
+
+.share-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-2);
+    margin-inline: auto;
+    padding: var(--sp-3);
+    background: #fff;
+    border-radius: var(--r-md);
+}
+
+.share-qr img {
+    width: clamp(116px, 22vw, 156px);
+    height: auto;
+    display: block;
+    image-rendering: pixelated;
+}
+
+.share-qr-label {
+    font-size: var(--fs-xs);
+    color: #3a3a38;
+    font-weight: 600;
+}
+
+.share-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+    gap: var(--sp-2);
+}
+
+.share-target {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-1);
+    border-radius: var(--r-md);
+    background: var(--glass);
+    border: 1px solid var(--line);
+    transition: all var(--t-fast);
+}
+
+.share-target:hover {
+    background: var(--glass-hover);
+    border-color: var(--line-strong);
+    transform: translateY(-1px);
+}
+
+.share-target:focus-visible {
+    border-color: var(--accent-line);
+}
+
+.share-icon {
+    display: grid;
+    place-items: center;
+    color: var(--text);
+}
+
+.share-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.share-label {
+    font-size: var(--fs-xs);
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.2;
+}
+
+@media (max-width: 520px) {
+    .share-url {
+        flex-wrap: wrap;
+    }
+
+    .share-copy {
+        flex: 1;
+    }
+
+    .share-grid {
+        grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    }
+}
