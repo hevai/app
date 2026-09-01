@@ -19,6 +19,7 @@ import type {
 } from "@compose-market/sdk";
 import type { NetworkId } from "@compose-market/sdk/chains";
 import { useNetwork } from "@/contexts/network";
+import { useLocale } from "@/contexts/locale";
 import { client, evmChainId, getChainObject, isEvmNetwork } from "@/lib/chains";
 import { isDesktop } from "@/lib/platform";
 import { sdk } from "@/lib/sdk";
@@ -143,6 +144,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const desktop = isDesktop();
   const account = useActiveAccount();
   const { chains, selectedNetwork } = useNetwork();
+  const { t } = useLocale();
   const [session, setSession] = useState<SessionState>(emptySession);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -333,7 +335,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           expiresAt: Date.now() + durationHours * 60 * 60 * 1_000,
           network,
           purpose: "session",
-          name: `Session ${new Date().toISOString().slice(0, 10)}`,
+          name: t("session.name", { date: new Date().toISOString().slice(0, 10) }),
         }),
       });
       if (!response.ok) {
@@ -369,7 +371,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsCreating(false);
     }
-  }, [account, attach, chains, desktop, refreshSession, selectedNetwork, session.token, session.userAddress]);
+  }, [account, attach, chains, desktop, refreshSession, selectedNetwork, session.token, session.userAddress, t]);
 
   const createLocalLink = useCallback(async (deviceId: string) => {
     if (desktop || !account?.address) throw new Error("Connect with Thirdweb on the web app first");

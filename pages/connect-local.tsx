@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, Monitor, Shield } from "lucide-react";
 import { Connector } from "@/components/connector";
 import { NetworkSelector } from "@/components/network-selector";
+import { Switcher } from "@/components/switcher";
 import { useIdentity } from "@/contexts/identity";
 import { useSession } from "@/hooks/use-session";
 import { useNetwork } from "@/contexts/network";
+import { useLocale } from "@/contexts/locale";
 import type { NetworkId } from "@compose-market/sdk/chains";
 
 function deviceIdFromQuery(): string | null {
@@ -17,9 +19,10 @@ export function ConnectLocalPage() {
   const { isConnected } = useIdentity();
   const { createLocalLink } = useSession();
   const { chains, setSelectedNetwork } = useNetwork();
+  const { t, err } = useLocale();
   const [authorizing, setAuthorizing] = useState(false);
   const [complete, setComplete] = useState(false);
-  const [error, setError] = useState<string | null>(deviceId ? null : "Invalid device ID");
+  const [error, setError] = useState<string | null>(deviceId ? null : t("connect.invalidDevice"));
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("network") as NetworkId | null;
@@ -35,7 +38,7 @@ export function ConnectLocalPage() {
       setComplete(true);
       window.location.href = `hevai://auth/callback?token=${encodeURIComponent(link.token)}`;
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Authorization failed");
+      setError(err(cause, "connect.failed"));
     } finally {
       setAuthorizing(false);
     }
@@ -45,21 +48,20 @@ export function ConnectLocalPage() {
     <div className="connect-local-page">
       <div className="connect-local-card">
         <span className="empty-icon">{complete ? <Check size={25} /> : <Monitor size={25} />}</span>
-        <h1>{complete ? "Desktop authorized" : "Connect hevai Desktop"}</h1>
+        <h1>{complete ? t("connect.authorized") : t("connect.title")}</h1>
         <p>
-          {complete
-            ? "The desktop app should open automatically."
-            : "Sign in here, then authorize this desktop device."}
+          {complete ? t("connect.doneDesc") : t("connect.desc")}
         </p>
-        {error ? <div className="session-error">{error}</div> : null}
+        {error ? <div className="session-error">{err(error)}</div> : null}
         {!complete ? (
           <div className="connect-local-actions">
+            <Switcher />
             <NetworkSelector />
             {!isConnected ? <Connector /> : null}
             {isConnected ? (
               <button type="button" className="btn btn-primary" disabled={authorizing || !deviceId} onClick={() => void authorize()}>
                 <Shield size={15} />
-                {authorizing ? "Authorizing..." : "Authorize desktop"}
+                {authorizing ? t("connect.authorizing") : t("connect.authorize")}
               </button>
             ) : null}
           </div>

@@ -4,10 +4,11 @@ import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useProjects } from "@/contexts/projects";
 import { useIdentity } from "@/contexts/identity";
+import { useCatalog } from "@/contexts/catalog";
+import { useLocale } from "@/contexts/locale";
 import { Empty } from "@/components/empty";
 import { Confirm } from "@/components/confirm";
 import { Icon, templateIcon } from "@/components/icon";
-import { timeAgo } from "@/lib/utils";
 
 interface HomeProps {
   onCreate: () => void;
@@ -16,6 +17,8 @@ interface HomeProps {
 export function Home({ onCreate }: HomeProps) {
   const { projects, deleteProject } = useProjects();
   const { isConnected } = useIdentity();
+  const { templateByName } = useCatalog();
+  const { t, timeAgo } = useLocale();
   const navigate = useNavigate();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
@@ -25,8 +28,8 @@ export function Home({ onCreate }: HomeProps) {
     return (
       <Empty
         icon="lightbulb"
-        title="Connect to view your projects"
-        description="Your projects and organizations appear after your wallet is connected."
+        title={t("home.connect.title")}
+        description={t("home.connect.desc")}
       />
     );
   }
@@ -35,16 +38,12 @@ export function Home({ onCreate }: HomeProps) {
     return (
       <Empty
         icon="lightbulb"
-        title="Build your first project"
-        description={
-          isConnected
-            ? "Pick a template or start from scratch, then shape it with drag-and-drop components."
-            : "Connect, then pick a template or start from scratch to build a project dashboard."
-        }
+        title={t("home.empty.title")}
+        description={t("home.empty.desc")}
         action={
           <button type="button" className="btn btn-primary" onClick={onCreate}>
             <Plus size={15} />
-            New project
+            {t("home.empty.action")}
           </button>
         }
       />
@@ -82,7 +81,7 @@ export function Home({ onCreate }: HomeProps) {
                 <span
                   className="card-tool"
                   role="button"
-                  aria-label="Delete project"
+                  aria-label={t("project.deleteTitle")}
                   onClick={() => setDeleteTarget(project.id)}
                 >
                   <Trash2 size={14} />
@@ -90,11 +89,16 @@ export function Home({ onCreate }: HomeProps) {
               </span>
             </div>
             <div className="card-body">
-              {project.description || "No description yet."}
+              {project.description || t("home.noDescription")}
             </div>
             <div style={{ display: "flex", gap: "var(--sp-2)", marginTop: "auto" }}>
-              <span className="chip">{project.template}</span>
-              <span className="chip">{project.blocks.length} components</span>
+              <span className="chip">{templateByName(project.template)?.label ?? project.template}</span>
+              <span className="chip">
+                {t(
+                  project.blocks.length === 1 ? "home.components.one" : "home.components.many",
+                  { count: project.blocks.length },
+                )}
+              </span>
               <span className="hint" style={{ marginLeft: "auto", alignSelf: "center" }}>
                 {timeAgo(project.updated)}
               </span>
@@ -105,18 +109,18 @@ export function Home({ onCreate }: HomeProps) {
 
       <Confirm
         open={Boolean(deleting)}
-        title="Delete project"
+        title={t("project.deleteTitle")}
         description={
           deleting
-            ? `"${deleting.name}" and all of its sections will be permanently deleted. This cannot be undone.`
+            ? t("project.deleteDesc", { name: deleting.name })
             : undefined
         }
-        confirmLabel="Delete project"
+        confirmLabel={t("project.deleteConfirm")}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget) {
             deleteProject(deleteTarget);
-            toast.success("Project deleted");
+            toast.success(t("project.deleted"));
           }
           setDeleteTarget(null);
         }}

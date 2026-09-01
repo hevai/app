@@ -21,9 +21,10 @@ import { defaultData, useProjects } from "@/contexts/projects";
 import { useCatalog } from "@/contexts/catalog";
 import { useIdentity } from "@/contexts/identity";
 import { useSession } from "@/hooks/use-session";
+import { useLocale } from "@/contexts/locale";
 import { api } from "@/lib/api";
 import { coerceData, executeAgent, SessionInvalidError } from "@/lib/compose";
-import { blockReady, readyHint, timeAgo } from "@/lib/utils";
+import { BRIEF_WORDS, blockReady } from "@/lib/utils";
 import { uid } from "@/schema";
 import type { Block, Component } from "@/types";
 import { Section } from "@/components/section";
@@ -87,6 +88,7 @@ export function ProjectPage() {
   const { componentByName, templateByName } = useCatalog();
   const { address } = useIdentity();
   const { session, refreshSession } = useSession();
+  const { t, err, lang, timeAgo } = useLocale();
   const project = id ? getProject(id) : undefined;
 
   const [editing, setEditing] = useState<Block | null>(null);
@@ -117,7 +119,7 @@ export function ProjectPage() {
   }, []);
 
   if (!project) {
-    return <Empty icon="alert" title="Project not found" description="It may have been removed." />;
+    return <Empty icon="alert" title={t("project.notFound")} description={t("project.removed")} />;
   }
 
   const ready = blocks.filter((block) => blockReady(block, componentByName(block.component))).length;
@@ -126,21 +128,21 @@ export function ProjectPage() {
   const spark = async (block: Block) => {
     if (running) return;
     if (!project.name.trim() || !project.description.trim()) {
-      toast.error("Add a name and a description to this project first — then AI can complete it.");
+      toast.error(t("spark.needProject"));
       return;
     }
     const component = componentByName(block.component);
     if (!component) return;
     if (!blockReady(block, component)) {
-      toast.error(readyHint(block, component));
+      toast.error(t("spark.readyHint", { count: BRIEF_WORDS }));
       return;
     }
     if (!address) {
-      toast.error("Connect your account first.");
+      toast.error(t("spark.needAccount"));
       return;
     }
     if (!session.active || !session.token) {
-      toast.error("Start a session first — the star spends from your session budget.");
+      toast.error(t("spark.needSession"));
       return;
     }
     setRunning(block.id);
@@ -155,18 +157,19 @@ export function ProjectPage() {
         description: project.description,
         data: block.data,
         options: block.options ?? {},
+        locale: lang,
       });
       const result = await executeAgent(payload);
       const data = coerceData(result.data, block.data, component);
       updateBlock(project.id, block.id, { data });
-      toast.success(`${component.label} completed by ${result.model}`);
+      toast.success(t("spark.completed", { component: component.label, model: result.model }));
       void refreshSession();
     } catch (cause) {
       if (cause instanceof SessionInvalidError) {
-        toast.error("Session problem — check your budget or start a new session.");
+        toast.error(t("spark.sessionProblem"));
         void refreshSession();
       } else {
-        toast.error(cause instanceof Error ? cause.message : "AI completion failed");
+        toast.error(err(cause, "spark.failed"));
       }
     } finally {
       setRunning(null);
@@ -219,7 +222,7 @@ export function ProjectPage() {
       component: componentName,
       title: component.label,
       brief: "",
-      data: defaultData(component),
+      data: defaultData(component, lang),
       options: {},
       order: blocks.length,
     });
@@ -235,7 +238,7 @@ export function ProjectPage() {
   const saveHero = () => {
     setHeroTried(true);
     if (!heroName.trim()) {
-      toast.error("The project needs a name.");
+      toast.error(t("project.needsName"));
       return;
     }
     updateProject(project.id, { name: heroName.trim(), description: heroDesc.trim() });
@@ -252,10 +255,10 @@ export function ProjectPage() {
           onClick={() => scrollTo("overview")}
         >
           <Icon name="sparkles" size={15} />
-          Overview
+          {t("project.overview")}
         </button>
 
-        {blocks.length > 0 ? <div className="nav-label">Sections</div> : null}
+        {blocks.length > 0 ? <div className="nav-label">{t("project.sections")}</div> : null}
         {blocks.map((block) => (
           <button
             key={block.id}
@@ -272,7 +275,7 @@ export function ProjectPage() {
         <div className="divider" style={{ margin: "var(--sp-2) 0" }} />
         <Toolbox onAdd={handleAdd} />
         <div className="hint" style={{ marginTop: "auto", padding: "0 var(--sp-1)" }}>
-          Drag sections to reorder. Click a section to fill it.
+          {t("project.reorderHint")}
         </div>
       </div>
 
@@ -283,11 +286,11 @@ export function ProjectPage() {
               image={project.image}
               size={52}
               shape="rounded"
-              label="Change project logo"
+              label={t("project.changeLogo")}
               fallback={<Icon name={templateIcon(project.template)} size={24} />}
               onPick={(url) => {
                 updateProject(project.id, { image: url });
-                toast.success("Project logo updated");
+                toast.success(t("project.logoUpdated"));
               }}
             />
             <div className="hero-titles">
@@ -300,8 +303,8 @@ export function ProjectPage() {
               type="button"
               className="btn btn-ghost btn-icon"
               onClick={openHero}
-              aria-label="Edit project details"
-              title="Edit name and description"
+              aria-label={t("project.editDetails")}
+              title={t("project.editNameDesc")}
             >
               <Pencil size={15} />
             </button>
@@ -309,8 +312,8 @@ export function ProjectPage() {
               type="button"
               className="btn btn-ghost btn-icon"
               onClick={() => setDeleteOpen(true)}
-              aria-label="Delete project"
-              title="Delete project"
+              aria-label={t("project.deleteTitle")}
+              title={t("project.deleteTitle")}
               style={{ color: "var(--danger)" }}
             >
               <Trash2 size={15} />
@@ -320,19 +323,23 @@ export function ProjectPage() {
             <span className="chip" data-tone="accent">
               {templateLabel}
             </span>
-            <span className="chip">{blocks.length} section{blocks.length === 1 ? "" : "s"}</span>
-            <span className="chip" data-done={(blocks.length > 0 && ready === blocks.length) || undefined}>
-              {ready}/{blocks.length} ready for AI
+            <span className="chip">
+              {t(blocks.length === 1 ? "project.sections.one" : "project.sections.many", {
+                count: blocks.length,
+              })}
             </span>
-            <span className="hint">updated {timeAgo(project.updated)}</span>
+            <span className="chip" data-done={(blocks.length > 0 && ready === blocks.length) || undefined}>
+              {t("project.ready", { ready, total: blocks.length })}
+            </span>
+            <span className="hint">{t("project.updated", { time: timeAgo(project.updated) })}</span>
           </div>
         </div>
 
         {blocks.length === 0 ? (
           <Empty
             icon="sparkles"
-            title="Nothing here yet"
-            description="Add components from the toolbox on the left to start building this project."
+            title={t("project.empty.title")}
+            description={t("project.empty.desc")}
           />
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -362,7 +369,7 @@ export function ProjectPage() {
           block={editing}
           component={componentByName(editing.component)}
           open
-          submitLabel={adding ? "Add component" : "Save"}
+          submitLabel={adding ? t("project.addComponent") : t("common.save")}
           onClose={() => {
             setEditing(null);
             setAdding(false);
@@ -380,12 +387,12 @@ export function ProjectPage() {
         <div className="overlay" onClick={() => setHeroOpen(false)}>
           <div className="modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-head">
-              <span className="modal-title">Edit project</span>
+              <span className="modal-title">{t("project.edit")}</span>
               <button
                 type="button"
                 className="btn btn-ghost btn-icon"
                 onClick={() => setHeroOpen(false)}
-                aria-label="Close"
+                aria-label={t("common.close")}
               >
                 <X size={16} />
               </button>
@@ -394,7 +401,7 @@ export function ProjectPage() {
               <div className="field-group" style={{ marginBottom: "var(--sp-3)" }}>
                 <label className="label" htmlFor="hero-name">
                   <span className="req" aria-hidden="true">*</span>
-                  Name
+                  {t("project.name")}
                 </label>
                 <input
                   id="hero-name"
@@ -403,12 +410,12 @@ export function ProjectPage() {
                   aria-required="true"
                   onChange={(e) => setHeroName(e.target.value)}
                 />
-                {heroTried && !heroName.trim() ? <span className="hint hint-req">Required</span> : null}
+                {heroTried && !heroName.trim() ? <span className="hint hint-req">{t("common.required")}</span> : null}
               </div>
               <div className="field-group">
                 <label className="label" htmlFor="hero-description">
-                  Description
-                  <span className="opt">optional</span>
+                  {t("project.description")}
+                  <span className="opt">{t("common.optional")}</span>
                 </label>
                 <textarea
                   id="hero-description"
@@ -416,15 +423,15 @@ export function ProjectPage() {
                   value={heroDesc}
                   onChange={(e) => setHeroDesc(e.target.value)}
                 />
-                <span className="hint">Strongly recommended — it gives the agents context</span>
+                <span className="hint">{t("project.descHint")}</span>
               </div>
             </div>
             <div className="modal-foot">
               <button type="button" className="btn btn-ghost" onClick={() => setHeroOpen(false)}>
-                Cancel
+                {t("common.cancel")}
               </button>
               <button type="button" className="btn btn-primary" onClick={saveHero}>
-                Save
+                {t("common.save")}
               </button>
             </div>
           </div>
@@ -433,19 +440,19 @@ export function ProjectPage() {
 
       <Confirm
         open={deleteOpen}
-        title="Delete project"
-        description={`"${project.name}" and all of its sections will be permanently deleted. This cannot be undone.`}
-        confirmLabel="Delete project"
+        title={t("project.deleteTitle")}
+        description={t("project.deleteDesc", { name: project.name })}
+        confirmLabel={t("project.deleteConfirm")}
         onClose={() => setDeleteOpen(false)}
         onConfirm={() => {
           deleteProject(project.id);
-          toast.success("Project deleted");
+          toast.success(t("project.deleted"));
           setDeleteOpen(false);
           navigate("/");
         }}
       />
 
-      <Chat />
+      <Chat project={project} />
     </div>
   );
 }
