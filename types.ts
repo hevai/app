@@ -14,13 +14,23 @@ export type Kind =
 
 export type View = "card" | "list" | "chart";
 
+export interface Membership {
+  id: string;
+  name: string;
+  role: Role;
+  image: string;
+  owner: string;
+  created: number;
+  updated: number;
+}
+
 export interface User {
   id: string;
   wallet: string;
   name: string;
   email: string;
   image: string;
-  orgs: string[];
+  orgs: Membership[];
 }
 
 export interface Member {
@@ -49,6 +59,13 @@ export interface Invite {
   id: string;
   org: string;
   code: string;
+  role: Role;
+  expires: number;
+}
+
+// Public preview of an invitation: the inviting org, without the roster.
+export interface Preview {
+  org: Omit<Org, "members">;
   role: Role;
   expires: number;
 }

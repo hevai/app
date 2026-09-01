@@ -6,9 +6,10 @@ import { Canvas } from "./components/canvas";
 import { Home } from "./pages/home";
 import { ProjectPage } from "./pages/project";
 import { OrgPage } from "./pages/org";
+import { InvitePage } from "./pages/invite";
 import { ConnectLocalPage } from "./pages/connect-local";
 import { DeepLinkHandler } from "./components/deep-link";
-import { stripLocale } from "./contexts/locale";
+import { stripLocale } from "./lib/url";
 
 export default function App() {
   const [canvasOpen, setCanvasOpen] = useState(false);
@@ -31,6 +32,7 @@ export default function App() {
                 <Route path="/" element={<Home onCreate={() => setCanvasOpen(true)} />} />
                 <Route path="/project/:id" element={<ProjectPage />} />
                 <Route path="/org/:id" element={<OrgPage />} />
+                <Route path="/invite/:code" element={<InvitePage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </div>
