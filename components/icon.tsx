@@ -53,10 +53,3 @@ export function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const Component = ICONS[name] ?? Lightbulb;
   return <Component size={size} aria-hidden="true" />;
 }
-
-export function templateIcon(name: string): string {
-  if (name === "idea") return "lightbulb";
-  if (name === "startup") return "rocket";
-  if (name === "enterprise") return "building";
-  return "sparkles";
-}

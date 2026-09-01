@@ -1,7 +1,7 @@
 import { GripVertical, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import type { Block, Component } from "@/types";
 import { BRIEF_WORDS, blockReady, countWords } from "@/lib/utils";
-import { useLocale } from "@/contexts/locale";
+import { useLocale } from "@/hooks/use-locale";
 import { Icon } from "./icon";
 import { Body } from "./card";
 

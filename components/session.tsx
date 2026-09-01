@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Clock, Shield, X, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/hooks/use-session";
-import { useLocale } from "@/contexts/locale";
+import { useLocale } from "@/hooks/use-locale";
+import { formatUsdc } from "@/lib/utils";
 
 const BUDGETS = [
   { label: "$1", value: "1000000" },
@@ -11,17 +12,6 @@ const BUDGETS = [
   { label: "$100", value: "100000000" },
 ] as const;
 const DURATIONS = [1, 6, 12, 24] as const;
-
-export function formatUsdc(value: string): string {
-  try {
-    const amount = BigInt(value);
-    const whole = amount / 1_000_000n;
-    const fraction = ((amount % 1_000_000n) / 10_000n).toString().padStart(2, "0");
-    return `${whole}.${fraction}`;
-  } catch {
-    return "0.00";
-  }
-}
 
 export function SessionControl() {
   const { session, isCreating, error, createSession } = useSession();

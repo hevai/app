@@ -4,7 +4,7 @@ import type { Block, Component, Dated, Field, Pair, Rank, Slice } from "@/types"
 import { Bars } from "./bars";
 import { uid } from "@/schema";
 import { softLower } from "@/lib/lang";
-import { useLocale } from "@/contexts/locale";
+import { useLocale } from "@/hooks/use-locale";
 import { BRIEF_WORDS, countWords, normalizeData } from "@/lib/utils";
 
 interface Patch {

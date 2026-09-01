@@ -1,4 +1,4 @@
-import { useLocale } from "@/contexts/locale";
+import { useLocale } from "@/hooks/use-locale";
 import { LANGS, type Lang } from "@/lib/lang";
 
 export function Switcher() {

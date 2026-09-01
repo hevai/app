@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { AlertTriangle, X } from "lucide-react";
-import { useLocale } from "@/contexts/locale";
+import { useLocale } from "@/hooks/use-locale";
 
 interface ConfirmProps {
   open: boolean;

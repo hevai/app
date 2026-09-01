@@ -5,12 +5,12 @@ import { createWallet, inAppWallet } from "thirdweb/wallets";
 import { Building2, Check, Copy, LogOut, ChevronDown, Pencil, Plus, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { client, getAccountAbstraction, getIdentityChain } from "@/lib/chains";
-import { useIdentity } from "@/contexts/identity";
-import { useScope } from "@/contexts/scope";
+import { useIdentity } from "@/hooks/use-identity";
+import { useScope } from "@/hooks/use-scope";
 import { useSession } from "@/hooks/use-session";
 import { getDeviceId, isDesktop } from "@/lib/platform";
-import { useNetwork } from "@/contexts/network";
-import { useLocale } from "@/contexts/locale";
+import { useNetwork } from "@/hooks/use-network";
+import { useLocale } from "@/hooks/use-locale";
 import { Avatar } from "./avatar";
 import { ImagePicker } from "./image-picker";
 import { initials } from "@/lib/utils";
@@ -113,7 +113,7 @@ export function Connector() {
             const params = new URLSearchParams({ device_id: getDeviceId(), network: selectedNetwork });
             await openUrl(`${base}/connect-local?${params.toString()}`);
           }}
-          >
+        >
           {t("connector.connect")}
         </button>
       );
@@ -158,132 +158,132 @@ export function Connector() {
 
   return (
     <>
-    <div ref={menuRef} style={{ position: "relative" }}>
-      <button
-        type="button"
-        className="btn btn-ghost"
-        onClick={() => setMenuOpen((open) => !open)}
-        aria-haspopup="menu"
-        aria-expanded={menuOpen}
-      >
-        <Avatar name={name} image={user?.image} />
-        <span className="connector-name">{name}</span>
-        <ChevronDown size={14} />
-      </button>
+      <div ref={menuRef} style={{ position: "relative" }}>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+        >
+          <Avatar name={name} image={user?.image} />
+          <span className="connector-name">{name}</span>
+          <ChevronDown size={14} />
+        </button>
 
-      {menuOpen ? (
-        <div className="menu" style={{ position: "absolute", right: 0, top: 40 }}>
-          <div style={{ padding: "8px 12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: "var(--fs-sm)", fontWeight: 600, fontFamily: user?.name ? undefined : "var(--mono)" }}>
-                {user?.name || shortAddress}
-              </span>
+        {menuOpen ? (
+          <div className="menu" style={{ position: "absolute", right: 0, top: 40 }}>
+            <div style={{ padding: "8px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: "var(--fs-sm)", fontWeight: 600, fontFamily: user?.name ? undefined : "var(--mono)" }}>
+                  {user?.name || shortAddress}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-icon btn-ghost"
+                  style={{ width: 24, height: 24 }}
+                  aria-label={t("connector.copyAddress")}
+                  title={t("connector.copyAddress")}
+                  onClick={async () => {
+                    if (!address) return;
+                    await navigator.clipboard.writeText(address);
+                    setCopied(true);
+                    toast.success(t("connector.addressCopied"));
+                    window.setTimeout(() => setCopied(false), 2_000);
+                  }}
+                >
+                  {copied ? <Check size={13} /> : <Copy size={13} />}
+                </button>
+              </div>
+              {user?.email ? (
+                <div style={{ fontSize: "var(--fs-xs)", color: "var(--muted)" }}>
+                  {user.email}
+                </div>
+              ) : null}
               <button
                 type="button"
-                className="btn btn-icon btn-ghost"
-                style={{ width: 24, height: 24 }}
-                aria-label={t("connector.copyAddress")}
-                title={t("connector.copyAddress")}
-                onClick={async () => {
-                  if (!address) return;
-                  await navigator.clipboard.writeText(address);
-                  setCopied(true);
-                  toast.success(t("connector.addressCopied"));
-                  window.setTimeout(() => setCopied(false), 2_000);
+                className="menu-item"
+                style={{ marginTop: 6 }}
+                onClick={() => {
+                  setMenuOpen(false);
+                  setProfileOpen(true);
                 }}
               >
-                {copied ? <Check size={13} /> : <Copy size={13} />}
+                <Pencil size={14} />
+                {t("connector.editProfile")}
               </button>
             </div>
-            {user?.email ? (
-              <div style={{ fontSize: "var(--fs-xs)", color: "var(--muted)" }}>
-                {user.email}
-              </div>
-            ) : null}
+            <div className="menu-sep" />
+
+            <div className="menu-label">{t("connector.workspace")}</div>
             <button
               type="button"
               className="menu-item"
-              style={{ marginTop: 6 }}
+              data-active={isPersonal || undefined}
+              onClick={() => go("/")}
+            >
+              <User size={15} />
+              <span style={{ flex: 1 }}>{t("connector.personal")}</span>
+              {isPersonal ? <Check size={14} style={{ color: "var(--accent)" }} /> : null}
+            </button>
+
+            {orgs.length > 0 ? <div className="menu-label">{t("connector.organizations")}</div> : null}
+            {orgs.map((org) => {
+              const active = location.pathname === `/org/${org.id}`;
+              return (
+                <button
+                  key={org.id}
+                  type="button"
+                  className="menu-item"
+                  data-active={active || undefined}
+                  onClick={() => go(`/org/${org.id}`)}
+                >
+                  {org.image ? (
+                    <img src={org.image} alt="" style={{ width: 16, height: 16, borderRadius: "var(--r-sm)", objectFit: "cover" }} />
+                  ) : (
+                    <Building2 size={15} />
+                  )}
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {org.name}
+                  </span>
+                  {active ? <Check size={14} style={{ color: "var(--accent)" }} /> : null}
+                </button>
+              );
+            })}
+            <button type="button" className="menu-item" onClick={() => go("/org/new")}>
+              <Plus size={15} />
+              {t("connector.createOrg")}
+            </button>
+
+            <div className="menu-sep" />
+            <button
+              type="button"
+              className="menu-item"
+              data-danger="true"
               onClick={() => {
                 setMenuOpen(false);
-                setProfileOpen(true);
+                clearSession();
+                disconnect();
               }}
             >
-              <Pencil size={14} />
-              {t("connector.editProfile")}
+              <LogOut size={15} />
+              {t("connector.signOut")}
             </button>
           </div>
-          <div className="menu-sep" />
+        ) : null}
+      </div>
 
-          <div className="menu-label">{t("connector.workspace")}</div>
-          <button
-            type="button"
-            className="menu-item"
-            data-active={isPersonal || undefined}
-            onClick={() => go("/")}
-          >
-            <User size={15} />
-            <span style={{ flex: 1 }}>{t("connector.personal")}</span>
-            {isPersonal ? <Check size={14} style={{ color: "var(--accent)" }} /> : null}
-          </button>
-
-          {orgs.length > 0 ? <div className="menu-label">{t("connector.organizations")}</div> : null}
-          {orgs.map((org) => {
-            const active = location.pathname === `/org/${org.id}`;
-            return (
-              <button
-                key={org.id}
-                type="button"
-                className="menu-item"
-                data-active={active || undefined}
-                onClick={() => go(`/org/${org.id}`)}
-              >
-                {org.image ? (
-                  <img src={org.image} alt="" style={{ width: 16, height: 16, borderRadius: "var(--r-sm)", objectFit: "cover" }} />
-                ) : (
-                  <Building2 size={15} />
-                )}
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {org.name}
-                </span>
-                {active ? <Check size={14} style={{ color: "var(--accent)" }} /> : null}
-              </button>
-            );
-          })}
-          <button type="button" className="menu-item" onClick={() => go("/org/new")}>
-            <Plus size={15} />
-            {t("connector.createOrg")}
-          </button>
-
-          <div className="menu-sep" />
-          <button
-            type="button"
-            className="menu-item"
-            data-danger="true"
-            onClick={() => {
-              setMenuOpen(false);
-              clearSession();
-              disconnect();
-            }}
-          >
-            <LogOut size={15} />
-            {t("connector.signOut")}
-          </button>
-        </div>
-      ) : null}
-    </div>
-
-    <ProfileModal
-      open={profileOpen}
-      onClose={() => setProfileOpen(false)}
-      name={user?.name ?? ""}
-      image={user?.image ?? ""}
-      onSave={async (patch) => {
-        await updateProfile(patch);
-        toast.success(t("connector.profileUpdated"));
-        setProfileOpen(false);
-      }}
-    />
+      <ProfileModal
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        name={user?.name ?? ""}
+        image={user?.image ?? ""}
+        onSave={async (patch) => {
+          await updateProfile(patch);
+          toast.success(t("connector.profileUpdated"));
+          setProfileOpen(false);
+        }}
+      />
     </>
   );
 }

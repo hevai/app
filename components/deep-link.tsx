@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { toast } from "sonner";
 import { useSession } from "@/hooks/use-session";
-import { useLocale } from "@/contexts/locale";
+import { useLocale } from "@/hooks/use-locale";
 import { getDeviceId, isDesktop } from "@/lib/platform";
 
 interface DeepLinkEvent {
@@ -20,9 +21,21 @@ function parseToken(raw: string): string | null {
   }
 }
 
+function parseInvite(raw: string): string | null {
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "hevai:" || url.hostname !== "invite") return null;
+    const code = url.pathname.replace(/^\/+/, "");
+    return /^[A-Za-z0-9_-]+$/.test(code) ? code : null;
+  } catch {
+    return null;
+  }
+}
+
 export function DeepLinkHandler() {
   const { redeemLocalLink } = useSession();
   const { t, err } = useLocale();
+  const navigate = useNavigate();
   const sequence = useRef(0);
 
   useEffect(() => {
@@ -43,15 +56,25 @@ export function DeepLinkHandler() {
       }
     };
 
+    const openInvite = (raw: string) => {
+      const code = parseInvite(raw);
+      if (code) navigate(`/invite/${code}`);
+    };
+
     void (async () => {
-      dispose = await listen<DeepLinkEvent>("deep-link", (event) => void redeem(event.payload.url));
+      dispose = await listen<DeepLinkEvent>("deep-link", (event) => {
+        openInvite(event.payload.url);
+        void redeem(event.payload.url);
+      });
       const pending = await invoke<string[]>("consume_pending_deep_links");
-      const newest = [...pending].reverse().find((url: string) => parseToken(url));
-      if (newest) await redeem(newest);
+      for (const url of [...pending].reverse()) {
+        openInvite(url);
+        await redeem(url);
+      }
     })();
 
     return () => dispose?.();
-  }, [redeemLocalLink, t, err]);
+  }, [redeemLocalLink, t, err, navigate]);
 
   return null;
 }

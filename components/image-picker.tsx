@@ -2,7 +2,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { pickImageFile, uploadImage } from "@/lib/media";
-import { useLocale } from "@/contexts/locale";
+import { useLocale } from "@/hooks/use-locale";
 
 interface ImagePickerProps {
   image: string;

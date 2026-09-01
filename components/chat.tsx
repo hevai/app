@@ -4,9 +4,9 @@ import { toast } from "sonner";
 import { clamp } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { SessionInvalidError, streamChat } from "@/lib/compose";
-import { useIdentity } from "@/contexts/identity";
+import { useIdentity } from "@/hooks/use-identity";
 import { useSession } from "@/hooks/use-session";
-import { useLocale } from "@/contexts/locale";
+import { useLocale } from "@/hooks/use-locale";
 import { MarkdownRenderer } from "@/components/markdown";
 import type { ChatMessage, Project } from "@/types";
 

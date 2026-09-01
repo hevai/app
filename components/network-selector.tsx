@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useSwitchActiveWalletChain } from "thirdweb/react";
 import type { NetworkId } from "@compose-market/sdk/chains";
-import { useNetwork } from "@/contexts/network";
+import { useNetwork } from "@/hooks/use-network";
 import { useSession } from "@/hooks/use-session";
-import { useLocale } from "@/contexts/locale";
+import { useLocale } from "@/hooks/use-locale";
 import { evmChainId, getChainObject, isEvmNetwork } from "@/lib/chains";
 import { isDesktop } from "@/lib/platform";
 

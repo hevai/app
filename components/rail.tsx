@@ -1,9 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Plus } from "lucide-react";
-import { useProjects } from "@/contexts/projects";
-import { useIdentity } from "@/contexts/identity";
-import { useLocale } from "@/contexts/locale";
-import { Icon, templateIcon } from "./icon";
+import { useProjects } from "@/hooks/use-projects";
+import { useIdentity } from "@/hooks/use-identity";
+import { useLocale } from "@/hooks/use-locale";
+import { templateIcon } from "@/lib/utils";
+import { Icon } from "./icon";
 import { Logo } from "./logo";
 
 interface RailProps {

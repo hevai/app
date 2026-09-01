@@ -1,8 +1,8 @@
 import { useLocation } from "react-router-dom";
-import { useProjects } from "@/contexts/projects";
-import { useScope } from "@/contexts/scope";
-import { useIdentity } from "@/contexts/identity";
-import { useLocale } from "@/contexts/locale";
+import { useProjects } from "@/hooks/use-projects";
+import { useScope } from "@/hooks/use-scope";
+import { useIdentity } from "@/hooks/use-identity";
+import { useLocale } from "@/hooks/use-locale";
 import { Connector } from "./connector";
 import { SessionControl } from "./session";
 import { NetworkSelector } from "./network-selector";

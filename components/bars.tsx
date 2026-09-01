@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from "lucide-react";
 import { clamp } from "@/lib/utils";
-import { useLocale } from "@/contexts/locale";
+import { useLocale } from "@/hooks/use-locale";
 import type { Slice } from "@/types";
 
 interface BarsProps {

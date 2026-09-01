@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { ChevronDown, Plus, Check } from "lucide-react";
-import { useCatalog } from "@/contexts/catalog";
-import { useLocale } from "@/contexts/locale";
+import { useCatalog } from "@/hooks/use-catalog";
+import { useLocale } from "@/hooks/use-locale";
 import type { Component } from "@/types";
 import { Icon } from "./icon";
 
