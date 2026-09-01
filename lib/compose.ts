@@ -179,3 +179,53 @@ export async function executeAgent(payload: AgentPayload): Promise<AgentResult> 
   }
   throw lastError ?? new Error("All model providers failed");
 }
+
+export interface ChatResult {
+  text: string;
+  model: string;
+}
+
+// Streams the prepared assistant payload through the compose.market SDK,
+// settling on the active session like executeAgent. The chain falls through
+// to the next provider only when a model fails before any text arrived.
+export async function streamChat(payload: AgentPayload, onDelta: (delta: string) => void): Promise<ChatResult> {
+  if (payload.chain.length === 0) throw new Error("No models available for this chat");
+  let lastError: Error | null = null;
+  for (const model of payload.chain) {
+    let received = false;
+    try {
+      const stream = sdk.inference.responses.stream(
+        {
+          model,
+          input: payload.input,
+          instructions: payload.instructions,
+          response_format: payload.response_format as ResponseFormat,
+          max_output_tokens: payload.max_output_tokens,
+          temperature: payload.temperature,
+        },
+        { timeoutMs: 120_000 },
+      );
+      let text = "";
+      let used = model;
+      for await (const event of stream) {
+        if (event.domain !== "model") continue;
+        if (event.type === "model.start" && event.model) used = event.model;
+        if (event.type === "model.text.delta" && event.delta) {
+          received = true;
+          text += event.delta;
+          onDelta(event.delta);
+        }
+        if (event.type === "model.error") {
+          throw new Error(event.error?.message ?? `${model} failed mid-response`);
+        }
+      }
+      if (!text.trim()) throw new Error(`${model} returned an empty response`);
+      return { text, model: used };
+    } catch (cause) {
+      if (received) throw cause;
+      lastError = cause instanceof Error ? cause : new Error(String(cause));
+      console.warn(`[hevai] ${model} failed — trying next provider:`, lastError.message);
+    }
+  }
+  throw lastError ?? new Error("All model providers failed");
+}

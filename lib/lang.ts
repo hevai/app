@@ -1,0 +1,681 @@
+import type { Component, Template } from "@/types";
+
+export type Lang = "en" | "it";
+
+export const LANGS: Lang[] = ["en", "it"];
+
+type Params = Record<string, string | number>;
+
+export const en = {
+  "common.cancel": "Cancel",
+  "common.save": "Save",
+  "common.close": "Close",
+  "common.delete": "Delete",
+  "common.remove": "Remove",
+  "common.add": "Add",
+  "common.working": "Working…",
+  "common.required": "Required",
+  "common.optional": "optional",
+  "common.loading": "Loading…",
+
+  "time.now": "just now",
+  "time.minutes": "{{count}}m ago",
+  "time.hours": "{{count}}h ago",
+  "time.days": "{{count}}d ago",
+
+  "expiry.none": "No expiry",
+  "expiry.expired": "Expired",
+  "expiry.dayHour": "{{d}}d {{h}}h",
+  "expiry.hourMinute": "{{h}}h {{m}}m",
+  "expiry.minute": "{{m}}m",
+
+  "home.connect.title": "Connect to view your projects",
+  "home.connect.desc": "Your projects and organizations appear after your wallet is connected.",
+  "home.empty.title": "Build your first project",
+  "home.empty.desc": "Pick a template or start from scratch, then shape it with drag-and-drop components.",
+  "home.empty.action": "New project",
+  "home.noDescription": "No description yet.",
+  "home.components.one": "{{count}} component",
+  "home.components.many": "{{count}} components",
+
+  "topbar.defaultSub": "Your projects",
+  "topbar.connectSub": "Connect to start building",
+  "topbar.projectFallback": "Project",
+  "topbar.newOrg": "New organization",
+  "topbar.newOrgSub": "Create a shared space for your team",
+  "topbar.orgSub": "Manage members and invites",
+
+  "rail.logoAria": "hevai home",
+  "rail.logoTitle": "hevai — home",
+  "rail.home": "Home",
+  "rail.create": "Create project",
+
+  "connector.connect": "Connect",
+  "connector.signingIn": "Signing in…",
+  "connector.loading": "Loading…",
+  "connector.modalTitle": "Connect to hevai",
+  "connector.editProfile": "Edit profile",
+  "connector.workspace": "Workspace",
+  "connector.personal": "Personal",
+  "connector.organizations": "Organizations",
+  "connector.createOrg": "Create organization",
+  "connector.signOut": "Sign out",
+  "connector.copyAddress": "Copy wallet address",
+  "connector.addressCopied": "Wallet address copied",
+  "connector.changeAvatar": "Change avatar",
+  "connector.removeAvatar": "Remove avatar",
+  "connector.displayName": "Display name",
+  "connector.namePlaceholder": "Your name",
+  "connector.saving": "Saving…",
+  "connector.profileUpdated": "Profile updated",
+
+  "session.start": "Start session",
+  "session.title": "Session",
+  "session.remaining": "Remaining",
+  "session.expires": "Expires",
+  "session.network": "Network",
+  "session.budgetLimit": "Budget limit",
+  "session.duration": "Duration",
+  "session.creating": "Creating...",
+  "session.started": "Session started",
+  "session.failed": "Failed to start session",
+  "session.name": "Session {{date}}",
+
+  "org.create.title": "Create an organization",
+  "org.create.desc": "An organization lets you invite teammates and share projects together.",
+  "org.create.placeholder": "Organization name",
+  "org.create.action": "Create",
+  "org.connect.title": "Connect to manage organizations",
+  "org.connect.desc": "Your organizations appear after your wallet is connected.",
+  "org.notFound": "Organization not found",
+  "org.removed": "It may have been removed.",
+  "org.nameFirst": "Name your organization first.",
+  "org.needsName": "The organization needs a name.",
+  "org.invite.title": "Invite a teammate",
+  "org.invite.desc": "Anyone with the link can join and choose how to sign in — they pick their own credentials.",
+  "org.invite.copy": "Copy invite link",
+  "org.invite.copied": "Invite link copied",
+  "org.invite.revoke": "Revoke invite",
+  "org.projects.title": "Organization projects",
+  "org.projects.desc": "Shared projects arrive in the next iteration — for now projects live in your personal workspace.",
+  "org.danger": "Danger zone",
+  "org.danger.desc": "Deleting this organization removes it for every member. This cannot be undone.",
+  "org.deleteTitle": "Delete organization",
+  "org.deleteDesc": "\"{{name}}\" will be permanently deleted, and its members will lose access. This cannot be undone.",
+  "org.deleteConfirm": "Delete organization",
+  "org.deleted": "Organization deleted",
+  "org.logoUpdated": "Organization logo updated",
+  "org.changeLogo": "Change organization logo",
+  "org.saveName": "Save name",
+  "org.cancelRename": "Cancel rename",
+  "org.rename": "Rename organization",
+  "org.members.one": "{{count}} member",
+  "org.members.many": "{{count}} members",
+
+  "project.notFound": "Project not found",
+  "project.removed": "It may have been removed.",
+  "project.overview": "Overview",
+  "project.sections": "Sections",
+  "project.reorderHint": "Drag sections to reorder. Click a section to fill it.",
+  "project.empty.title": "Nothing here yet",
+  "project.empty.desc": "Add components from the toolbox on the left to start building this project.",
+  "project.edit": "Edit project",
+  "project.name": "Name",
+  "project.description": "Description",
+  "project.descHint": "Strongly recommended — it gives the agents context",
+  "project.changeLogo": "Change project logo",
+  "project.logoUpdated": "Project logo updated",
+  "project.editDetails": "Edit project details",
+  "project.editNameDesc": "Edit name and description",
+  "project.addComponent": "Add component",
+  "project.needsName": "The project needs a name.",
+  "project.sections.one": "{{count}} section",
+  "project.sections.many": "{{count}} sections",
+  "project.ready": "{{ready}}/{{total}} ready for AI",
+  "project.updated": "updated {{time}}",
+  "project.deleteTitle": "Delete project",
+  "project.deleteDesc": "\"{{name}}\" and all of its sections will be permanently deleted. This cannot be undone.",
+  "project.deleteConfirm": "Delete project",
+  "project.deleted": "Project deleted",
+
+  "spark.readyHint": "Add a brief of at least {{count}} words so the agent has context.",
+  "spark.busyAria": "AI completing this block",
+  "spark.goAria": "AI complete this block",
+  "spark.blockedAria": "AI complete (fill the block first)",
+  "spark.busyTitle": "The block agent is working…",
+  "spark.goTitle": "Ask the block agent to complete this block",
+  "spark.needProject": "Add a name and a description to this project first — then AI can complete it.",
+  "spark.needAccount": "Connect your account first.",
+  "spark.needSession": "Start a session first — the star spends from your session budget.",
+  "spark.completed": "{{component}} completed by {{model}}",
+  "spark.sessionProblem": "Session problem — check your budget or start a new session.",
+  "spark.failed": "AI completion failed",
+
+  "canvas.title": "Create a project",
+  "canvas.name": "Project name",
+  "canvas.namePlaceholder": "e.g. Apollo",
+  "canvas.description": "Description",
+  "canvas.descPlaceholder": "What is this project about?",
+  "canvas.descRequired": "Required — it gives the agents context",
+  "canvas.toolboxHint": "Click a component to add it and start filling it. Drag it to place it.",
+  "canvas.dropHint1": "Drag components here from the toolbox — or click them to add.",
+  "canvas.dropHint2": "Each component opens ready for you to fill it in.",
+  "canvas.foot.one": "{{count}} component in the project",
+  "canvas.foot.many": "{{count}} components in the project",
+  "canvas.footRequired": "required",
+  "canvas.create": "Create project",
+  "canvas.needName": "Give your project a name first.",
+  "canvas.needDesc": "Add a short description — the agents need it for context.",
+  "canvas.needBrief": "Every component needs a brief of at least {{count}} words before it can be added.",
+  "canvas.needProject": "Add a name and a description first — then AI can complete components for you.",
+  "canvas.scratch": "Start from scratch",
+  "canvas.scratchDesc": "A blank project. Add only the components you need.",
+
+  "editor.fill": "Fill {{component}}",
+  "editor.brief": "Brief",
+  "editor.briefPlaceholder": "Short context for the block agent: what should it know about this area of the project?",
+  "editor.briefCounter": "{{words}}/{{max}} words · feeds the block agent",
+  "editor.memberName": "Member name",
+  "editor.pairName": "Name",
+  "editor.pairValue": "Target / value",
+  "editor.addField": "Add {{label}}",
+  "editor.level": "level",
+  "editor.status": "status",
+  "editor.addOption": "Add option",
+  "editor.customize": "Customize {{label}} options · saved with this block",
+  "editor.briefFoot": "* brief needs at least {{count}} words",
+  "editor.roleFor": "Role for {{name}}",
+  "editor.removeOption": "Remove {{option}}",
+  "editor.addMember": "Add member",
+
+  "block.empty": "Nothing here yet — click to fill this block.",
+  "block.noMembers": "No members yet.",
+  "block.noItems": "No items yet.",
+  "block.noTags": "No tags yet.",
+  "block.noDetails": "No details yet.",
+  "block.noField": "No {{label}} yet.",
+  "block.words": "{{words}}/{{max}} words",
+  "block.drag": "Drag to reorder",
+  "block.edit": "Edit component",
+  "block.remove": "Remove component",
+
+  "chat.title": "Project assistant",
+  "chat.emptyPre": "Ask anything about",
+  "chat.emptyPost": "— ideas, concepts, improvements.",
+  "chat.placeholder": "Ask about this project…",
+  "chat.suggestion1": "What should I improve first?",
+  "chat.suggestion2": "Explain the weakest section of this project",
+  "chat.suggestion3": "Give me three ideas to move it forward",
+  "chat.clear": "Clear conversation",
+  "chat.close": "Close chat",
+  "chat.open": "Open project assistant",
+  "chat.needSession": "Start a session first — the assistant spends from your session budget.",
+  "chat.failed": "Assistant failed",
+
+  "toolbox.title": "Component toolbox",
+  "toolbox.none": "No components available.",
+  "toolbox.loading": "Loading components…",
+
+  "bars.add": "Add slice",
+  "bars.newSlice": "New slice",
+  "bars.sliceName": "Slice name",
+  "bars.removeSlice": "Remove slice",
+  "bars.total": "total {{total}}%",
+
+  "connect.authorized": "Desktop authorized",
+  "connect.title": "Connect hevai Desktop",
+  "connect.doneDesc": "The desktop app should open automatically.",
+  "connect.desc": "Sign in here, then authorize this desktop device.",
+  "connect.invalidDevice": "Invalid device ID",
+  "connect.failed": "Authorization failed",
+  "connect.authorizing": "Authorizing...",
+  "connect.authorize": "Authorize desktop",
+
+  "link.connected": "Desktop session connected",
+  "link.failed": "Desktop authorization failed",
+
+  "md.code": "code",
+  "md.copyCode": "Copy code",
+
+  "network.label": "Payment network",
+
+  "picker.choose": "Choose an image",
+  "picker.failed": "Upload failed",
+
+  "media.read": "Could not read the file",
+  "media.imageOnly": "Only image files are allowed",
+  "media.tooLarge": "Image is too large (max 8 MB)",
+
+  "agent.sessionInvalid": "Session invalid: {{reason}}",
+  "agent.badJson": "The model did not return valid JSON",
+  "agent.noBlockModels": "No models available for this block",
+  "agent.noChatModels": "No models available for this chat",
+  "agent.noResponse": "{{model}} failed to respond",
+  "agent.emptyResponse": "{{model}} returned an empty response",
+  "agent.midResponse": "{{model}} failed mid-response",
+  "agent.allFailed": "All model providers failed",
+
+  "api.failed": "Request failed ({{status}})",
+
+  "sessionErr.account": "Connect your account first",
+  "sessionErr.evm": "Session approval requires an EVM smart account",
+  "sessionErr.unavailable": "Session approval is unavailable for {{network}}",
+  "sessionErr.balance": "Insufficient USDC balance. Available: {{available}}",
+  "sessionErr.createFailed": "Session creation failed ({{status}})",
+  "sessionErr.failed": "Failed to create session",
+  "sessionErr.webFirst": "Connect with Thirdweb on the web app first",
+
+  "seed.you": "You",
+
+  "switcher.label": "Language",
+};
+
+export type TKey = keyof typeof en;
+export type Dict = Record<TKey, string>;
+
+export const it: Dict = {
+  "common.cancel": "Annulla",
+  "common.save": "Salva",
+  "common.close": "Chiudi",
+  "common.delete": "Elimina",
+  "common.remove": "Rimuovi",
+  "common.add": "Aggiungi",
+  "common.working": "Attendere…",
+  "common.required": "Obbligatorio",
+  "common.optional": "facoltativa",
+  "common.loading": "Caricamento…",
+
+  "time.now": "adesso",
+  "time.minutes": "{{count}} min fa",
+  "time.hours": "{{count}} h fa",
+  "time.days": "{{count}} g fa",
+
+  "expiry.none": "Nessuna scadenza",
+  "expiry.expired": "Scaduta",
+  "expiry.dayHour": "{{d}}g {{h}}h",
+  "expiry.hourMinute": "{{h}}h {{m}}m",
+  "expiry.minute": "{{m}}m",
+
+  "home.connect.title": "Connettiti per vedere i tuoi progetti",
+  "home.connect.desc": "I tuoi progetti e le tue organizzazioni compaiono dopo aver connesso il wallet.",
+  "home.empty.title": "Crea il tuo primo progetto",
+  "home.empty.desc": "Scegli un template o parti da zero, poi dai forma al progetto trascinando i componenti.",
+  "home.empty.action": "Nuovo progetto",
+  "home.noDescription": "Ancora nessuna descrizione.",
+  "home.components.one": "{{count}} componente",
+  "home.components.many": "{{count}} componenti",
+
+  "topbar.defaultSub": "I tuoi progetti",
+  "topbar.connectSub": "Connettiti per iniziare a creare",
+  "topbar.projectFallback": "Progetto",
+  "topbar.newOrg": "Nuova organizzazione",
+  "topbar.newOrgSub": "Crea uno spazio condiviso per il tuo team",
+  "topbar.orgSub": "Gestisci membri e inviti",
+
+  "rail.logoAria": "Home di hevai",
+  "rail.logoTitle": "hevai — home",
+  "rail.home": "Home",
+  "rail.create": "Crea progetto",
+
+  "connector.connect": "Connetti",
+  "connector.signingIn": "Accesso in corso…",
+  "connector.loading": "Caricamento…",
+  "connector.modalTitle": "Connettiti a hevai",
+  "connector.editProfile": "Modifica profilo",
+  "connector.workspace": "Workspace",
+  "connector.personal": "Personale",
+  "connector.organizations": "Organizzazioni",
+  "connector.createOrg": "Crea organizzazione",
+  "connector.signOut": "Esci",
+  "connector.copyAddress": "Copia indirizzo wallet",
+  "connector.addressCopied": "Indirizzo wallet copiato",
+  "connector.changeAvatar": "Cambia avatar",
+  "connector.removeAvatar": "Rimuovi avatar",
+  "connector.displayName": "Nome visualizzato",
+  "connector.namePlaceholder": "Il tuo nome",
+  "connector.saving": "Salvataggio…",
+  "connector.profileUpdated": "Profilo aggiornato",
+
+  "session.start": "Avvia sessione",
+  "session.title": "Sessione",
+  "session.remaining": "Residuo",
+  "session.expires": "Scadenza",
+  "session.network": "Rete",
+  "session.budgetLimit": "Limite di budget",
+  "session.duration": "Durata",
+  "session.creating": "Creazione…",
+  "session.started": "Sessione avviata",
+  "session.failed": "Impossibile avviare la sessione",
+  "session.name": "Sessione {{date}}",
+
+  "org.create.title": "Crea un'organizzazione",
+  "org.create.desc": "Un'organizzazione ti permette di invitare collaboratori e condividere i progetti.",
+  "org.create.placeholder": "Nome dell'organizzazione",
+  "org.create.action": "Crea",
+  "org.connect.title": "Connettiti per gestire le organizzazioni",
+  "org.connect.desc": "Le tue organizzazioni compaiono dopo aver connesso il wallet.",
+  "org.notFound": "Organizzazione non trovata",
+  "org.removed": "Potrebbe essere stata rimossa.",
+  "org.nameFirst": "Prima dai un nome all'organizzazione.",
+  "org.needsName": "L'organizzazione ha bisogno di un nome.",
+  "org.invite.title": "Invita un collaboratore",
+  "org.invite.desc": "Chiunque abbia il link può entrare e scegliere come accedere, con le credenziali che preferisce.",
+  "org.invite.copy": "Copia link di invito",
+  "org.invite.copied": "Link di invito copiato",
+  "org.invite.revoke": "Revoca invito",
+  "org.projects.title": "Progetti dell'organizzazione",
+  "org.projects.desc": "I progetti condivisi arriveranno nella prossima iterazione — per ora vivono nel tuo spazio personale.",
+  "org.danger": "Zona pericolosa",
+  "org.danger.desc": "Eliminando questa organizzazione la rimuovi per tutti i membri. Questa azione non può essere annullata.",
+  "org.deleteTitle": "Elimina organizzazione",
+  "org.deleteDesc": "\"{{name}}\" verrà eliminata definitivamente e i suoi membri perderanno l'accesso. Questa azione non può essere annullata.",
+  "org.deleteConfirm": "Elimina organizzazione",
+  "org.deleted": "Organizzazione eliminata",
+  "org.logoUpdated": "Logo dell'organizzazione aggiornato",
+  "org.changeLogo": "Cambia logo dell'organizzazione",
+  "org.saveName": "Salva nome",
+  "org.cancelRename": "Annulla rinomina",
+  "org.rename": "Rinomina organizzazione",
+  "org.members.one": "{{count}} membro",
+  "org.members.many": "{{count}} membri",
+
+  "project.notFound": "Progetto non trovato",
+  "project.removed": "Potrebbe essere stato rimosso.",
+  "project.overview": "Panoramica",
+  "project.sections": "Sezioni",
+  "project.reorderHint": "Trascina le sezioni per riordinarle. Clicca su una sezione per compilarla.",
+  "project.empty.title": "Ancora niente qui",
+  "project.empty.desc": "Aggiungi componenti dalla cassetta a sinistra per iniziare a costruire questo progetto.",
+  "project.edit": "Modifica progetto",
+  "project.name": "Nome",
+  "project.description": "Descrizione",
+  "project.descHint": "Fortemente consigliata — dà contesto agli agenti",
+  "project.changeLogo": "Cambia logo del progetto",
+  "project.logoUpdated": "Logo del progetto aggiornato",
+  "project.editDetails": "Modifica dettagli del progetto",
+  "project.editNameDesc": "Modifica nome e descrizione",
+  "project.addComponent": "Aggiungi componente",
+  "project.needsName": "Il progetto ha bisogno di un nome.",
+  "project.sections.one": "{{count}} sezione",
+  "project.sections.many": "{{count}} sezioni",
+  "project.ready": "{{ready}}/{{total}} pronte per l'AI",
+  "project.updated": "aggiornato {{time}}",
+  "project.deleteTitle": "Elimina progetto",
+  "project.deleteDesc": "\"{{name}}\" e tutte le sue sezioni verranno eliminati definitivamente. Questa azione non può essere annullata.",
+  "project.deleteConfirm": "Elimina progetto",
+  "project.deleted": "Progetto eliminato",
+
+  "spark.readyHint": "Aggiungi un brief di almeno {{count}} parole per dare contesto all'agente.",
+  "spark.busyAria": "L'AI sta completando questo blocco",
+  "spark.goAria": "Chiedi all'AI di completare questo blocco",
+  "spark.blockedAria": "Completa con l'AI (prima compila il blocco)",
+  "spark.busyTitle": "L'agente del blocco sta lavorando…",
+  "spark.goTitle": "Chiedi all'agente di completare questo blocco",
+  "spark.needProject": "Prima aggiungi un nome e una descrizione al progetto — poi l'AI potrà completarlo.",
+  "spark.needAccount": "Connetti prima il tuo account.",
+  "spark.needSession": "Prima avvia una sessione — la stella attinge dal tuo budget di sessione.",
+  "spark.completed": "Sezione {{component}} completata da {{model}}",
+  "spark.sessionProblem": "Problema di sessione — controlla il budget o avvia una nuova sessione.",
+  "spark.failed": "Completamento AI non riuscito",
+
+  "canvas.title": "Crea un progetto",
+  "canvas.name": "Nome del progetto",
+  "canvas.namePlaceholder": "es. Apollo",
+  "canvas.description": "Descrizione",
+  "canvas.descPlaceholder": "Di cosa si occupa questo progetto?",
+  "canvas.descRequired": "Obbligatoria — dà contesto agli agenti",
+  "canvas.toolboxHint": "Clicca un componente per aggiungerlo e iniziare a compilarlo. Trascinalo per posizionarlo.",
+  "canvas.dropHint1": "Trascina qui i componenti dalla cassetta — oppure cliccali per aggiungerli.",
+  "canvas.dropHint2": "Ogni componente si apre pronto da compilare.",
+  "canvas.foot.one": "{{count}} componente nel progetto",
+  "canvas.foot.many": "{{count}} componenti nel progetto",
+  "canvas.footRequired": "obbligatorio",
+  "canvas.create": "Crea progetto",
+  "canvas.needName": "Prima dai un nome al progetto.",
+  "canvas.needDesc": "Aggiungi una breve descrizione — gli agenti ne hanno bisogno per il contesto.",
+  "canvas.needBrief": "Ogni componente richiede un brief di almeno {{count}} parole prima di poter essere aggiunto.",
+  "canvas.needProject": "Prima aggiungi un nome e una descrizione — poi l'AI completerà i componenti per te.",
+  "canvas.scratch": "Parti da zero",
+  "canvas.scratchDesc": "Un progetto vuoto. Aggiungi solo i componenti che ti servono.",
+
+  "editor.fill": "Compila {{component}}",
+  "editor.brief": "Brief",
+  "editor.briefPlaceholder": "Contesto breve per l'agente del blocco: cosa dovrebbe sapere su quest'area del progetto?",
+  "editor.briefCounter": "{{words}}/{{max}} parole · alimenta l'agente del blocco",
+  "editor.memberName": "Nome del membro",
+  "editor.pairName": "Nome",
+  "editor.pairValue": "Obiettivo / valore",
+  "editor.addField": "Aggiungi {{label}}",
+  "editor.level": "livello",
+  "editor.status": "stato",
+  "editor.addOption": "Aggiungi opzione",
+  "editor.customize": "Personalizza le opzioni del campo · salvate con questo blocco",
+  "editor.briefFoot": "* il brief richiede almeno {{count}} parole",
+  "editor.roleFor": "Ruolo di {{name}}",
+  "editor.removeOption": "Rimuovi {{option}}",
+  "editor.addMember": "Aggiungi membro",
+
+  "block.empty": "Ancora niente — clicca per compilare questo blocco.",
+  "block.noMembers": "Ancora nessun membro.",
+  "block.noItems": "Ancora nessun elemento.",
+  "block.noTags": "Ancora nessun tag.",
+  "block.noDetails": "Ancora nessun dettaglio.",
+  "block.noField": "Non ci sono ancora {{label}}.",
+  "block.words": "{{words}}/{{max}} parole",
+  "block.drag": "Trascina per riordinare",
+  "block.edit": "Modifica componente",
+  "block.remove": "Rimuovi componente",
+
+  "chat.title": "Assistente del progetto",
+  "chat.emptyPre": "Chiedi qualsiasi cosa su",
+  "chat.emptyPost": "— idee, concetti, miglioramenti.",
+  "chat.placeholder": "Chiedi qualcosa su questo progetto…",
+  "chat.suggestion1": "Cosa dovrei migliorare per prima cosa?",
+  "chat.suggestion2": "Spiega qual è la sezione più debole del progetto",
+  "chat.suggestion3": "Dammi tre idee per portarlo avanti",
+  "chat.clear": "Svuota conversazione",
+  "chat.close": "Chiudi chat",
+  "chat.open": "Apri l'assistente del progetto",
+  "chat.needSession": "Prima avvia una sessione — l'assistente attinge dal tuo budget di sessione.",
+  "chat.failed": "Errore dell'assistente",
+
+  "toolbox.title": "Cassetta dei componenti",
+  "toolbox.none": "Nessun componente disponibile.",
+  "toolbox.loading": "Caricamento dei componenti…",
+
+  "bars.add": "Aggiungi voce",
+  "bars.newSlice": "Nuova voce",
+  "bars.sliceName": "Nome della voce",
+  "bars.removeSlice": "Rimuovi voce",
+  "bars.total": "totale {{total}}%",
+
+  "connect.authorized": "Desktop autorizzato",
+  "connect.title": "Connetti hevai Desktop",
+  "connect.doneDesc": "L'app desktop dovrebbe aprirsi automaticamente.",
+  "connect.desc": "Accedi qui, poi autorizza questo dispositivo.",
+  "connect.invalidDevice": "ID dispositivo non valido",
+  "connect.failed": "Autorizzazione non riuscita",
+  "connect.authorizing": "Autorizzazione…",
+  "connect.authorize": "Autorizza desktop",
+
+  "link.connected": "Sessione desktop connessa",
+  "link.failed": "Autorizzazione desktop non riuscita",
+
+  "md.code": "codice",
+  "md.copyCode": "Copia codice",
+
+  "network.label": "Rete di pagamento",
+
+  "picker.choose": "Scegli un'immagine",
+  "picker.failed": "Caricamento non riuscito",
+
+  "media.read": "Impossibile leggere il file",
+  "media.imageOnly": "Sono ammessi solo file immagine",
+  "media.tooLarge": "Immagine troppo grande (max 8 MB)",
+
+  "agent.sessionInvalid": "Sessione non valida: {{reason}}",
+  "agent.badJson": "Il modello non ha restituito un JSON valido",
+  "agent.noBlockModels": "Nessun modello disponibile per questo blocco",
+  "agent.noChatModels": "Nessun modello disponibile per questa chat",
+  "agent.noResponse": "{{model}} non ha risposto",
+  "agent.emptyResponse": "{{model}} ha restituito una risposta vuota",
+  "agent.midResponse": "{{model}} si è interrotto durante la risposta",
+  "agent.allFailed": "Tutti i provider hanno fallito",
+
+  "api.failed": "Richiesta non riuscita ({{status}})",
+
+  "sessionErr.account": "Connetti prima il tuo account",
+  "sessionErr.evm": "L'approvazione della sessione richiede uno smart account EVM",
+  "sessionErr.unavailable": "L'approvazione della sessione non è disponibile per {{network}}",
+  "sessionErr.balance": "Saldo USDC insufficiente. Disponibile: {{available}}",
+  "sessionErr.createFailed": "Creazione della sessione non riuscita ({{status}})",
+  "sessionErr.failed": "Impossibile creare la sessione",
+  "sessionErr.webFirst": "Connettiti prima con Thirdweb sull'app web",
+
+  "seed.you": "Tu",
+
+  "switcher.label": "Lingua",
+};
+
+export function translate(dict: Dict, key: TKey, params?: Params): string {
+  let text: string = dict[key];
+  if (!params) return text;
+  for (const [name, value] of Object.entries(params)) {
+    text = text.replaceAll(`{{${name}}}`, String(value));
+  }
+  return text;
+}
+
+export function softLower(value: string): string {
+  if (/^[A-Z]{2,}/.test(value)) return value;
+  return value.charAt(0).toLowerCase() + value.slice(1);
+}
+
+export const barSeeds: Record<Lang, string[]> = {
+  en: ["One", "Two", "Three"],
+  it: ["Uno", "Due", "Tre"],
+};
+
+export interface ComponentIt {
+  label: string;
+  description: string;
+  fields: Record<string, string>;
+}
+
+export interface TemplateIt {
+  label: string;
+  description: string;
+}
+
+export const catalogIt = {
+  roles: {
+    owner: "Proprietario",
+    admin: "Amministratore",
+    editor: "Editor",
+    viewer: "Lettore",
+  } as Record<string, string>,
+  options: {
+    roadmap: { now: "adesso", next: "poi", later: "più avanti" },
+    milestones: { planned: "pianificato", active: "in corso", done: "completato" },
+    risks: { low: "basso", medium: "medio", high: "alto", critical: "critico" },
+    metrics: { daily: "giornaliera", weekly: "settimanale", monthly: "mensile", quarterly: "trimestrale" },
+    tasks: { backlog: "backlog", todo: "da fare", doing: "in corso", review: "in revisione", done: "completato" },
+    goals: { quarterly: "trimestrale", annual: "annuale" },
+  } as Record<string, Record<string, string>>,
+  components: {
+    team: {
+      label: "Team",
+      description: "Chi lo costruisce: ruoli funzionali, competenze e posizioni aperte.",
+      fields: { members: "Membri", skills: "Competenze", hiring: "Posizioni aperte" },
+    },
+    budget: {
+      label: "Budget",
+      description: "Soldi: ripartizione dei fondi, burn mensile e runway. Le voci sommano sempre 100.",
+      fields: { slices: "Ripartizione", burn: "Burn mensile", runway: "Runway (mesi)", stage: "Fase di finanziamento" },
+    },
+    market: {
+      label: "Mercato",
+      description: "Dove competi: posizionamento, segmenti target, dimensione del mercato e competitor.",
+      fields: { summary: "Posizionamento", segments: "Segmenti", sizes: "Dimensioni del mercato", competitors: "Competitor" },
+    },
+    priorities: {
+      label: "Priorità",
+      description: "Ciò che conta di più in questo timebox, ordinato con MoSCoW.",
+      fields: { focus: "Focus attuale", items: "Priorità" },
+    },
+    roadmap: {
+      label: "Roadmap",
+      description: "Fasi di rilascio nel tempo, raggruppate in adesso / poi / più avanti.",
+      fields: { phases: "Fasi" },
+    },
+    milestones: {
+      label: "Milestone",
+      description: "Punti di controllo datati: traguardi senza durata, con data obiettivo e stato.",
+      fields: { items: "Milestone" },
+    },
+    risks: {
+      label: "Rischi",
+      description: "Minacce classificate per gravità, con le relative mitigazioni.",
+      fields: { items: "Rischi", mitigations: "Mitigazioni" },
+    },
+    metrics: {
+      label: "Metriche",
+      description: "KPI che misurano la salute del progetto, ciascuno con un obiettivo, rivisti con una cadenza.",
+      fields: { kpis: "KPI", cadence: "Cadenza di revisione" },
+    },
+    tasks: {
+      label: "Attività",
+      description: "Attività concrete che scorrono tra gli stati kanban, con scadenze.",
+      fields: { items: "Attività" },
+    },
+    goals: {
+      label: "Obiettivi",
+      description: "Un obiettivo che ispira, con risultati chiave misurabili, per ciclo.",
+      fields: { objective: "Obiettivo", results: "Risultati chiave", cycle: "Ciclo" },
+    },
+  } as Record<string, ComponentIt>,
+  templates: {
+    idea: {
+      label: "Idea",
+      description: "Cattura e valida un concetto nelle fasi iniziali.",
+    },
+    startup: {
+      label: "Startup",
+      description: "Pianifica una venture dal team al lancio.",
+    },
+    enterprise: {
+      label: "Enterprise",
+      description: "Coordina una grande iniziativa multi-team.",
+    },
+  } as Record<string, TemplateIt>,
+};
+
+export function translateCatalog(
+  components: Component[],
+  templates: Template[],
+): { components: Component[]; templates: Template[] } {
+  return {
+    components: components.map((component) => {
+      const entry = catalogIt.components[component.name];
+      if (!entry) return component;
+      return {
+        ...component,
+        label: entry.label ?? component.label,
+        description: entry.description ?? component.description,
+        fields: component.fields.map((field) => ({
+          ...field,
+          label: entry.fields[field.name] ?? field.label,
+        })),
+      };
+    }),
+    templates: templates.map((template) => {
+      const entry = catalogIt.templates[template.name];
+      if (!entry) return template;
+      return {
+        ...template,
+        label: entry.label ?? template.label,
+        description: entry.description ?? template.description,
+      };
+    }),
+  };
+}

@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import type { Block, Component, Dated, Field, Pair, Rank } from "@/types";
+import { barSeeds, type Lang } from "@/lib/lang";
 
 export const BRIEF_WORDS = 10;
 
@@ -17,17 +18,6 @@ export function initials(name: string): string {
 export function shortAddress(address: string): string {
   if (!address) return "";
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
-}
-
-export function timeAgo(timestamp: number): string {
-  const delta = Date.now() - timestamp;
-  const minute = 60_000;
-  const hour = 3_600_000;
-  const day = 86_400_000;
-  if (delta < minute) return "just now";
-  if (delta < hour) return `${Math.floor(delta / minute)}m ago`;
-  if (delta < day) return `${Math.floor(delta / hour)}h ago`;
-  return `${Math.floor(delta / day)}d ago`;
 }
 
 export function clamp(value: number, min: number, max: number): number {
@@ -67,13 +57,13 @@ export function toDated(row: unknown): Dated {
 
 // Builds the standard skeleton for a field from its catalog defaults, so a
 // fresh block always opens pre-structured (never an empty generic box).
-export function seedValue(field: Field): unknown {
+export function seedValue(field: Field, lang: Lang = "en"): unknown {
   switch (field.kind) {
     case "bars": {
       const names =
         field.defaults && field.defaults.length > 0
           ? field.defaults.map((entry) => (typeof entry === "string" ? entry : entry.label))
-          : ["One", "Two", "Three"];
+          : barSeeds[lang];
       const share = Math.floor(100 / names.length);
       return names.map((name, index) => ({
         name,
@@ -114,14 +104,18 @@ export function seedValue(field: Field): unknown {
 // before a kind existed — or with simpler rows — keep rendering/editing).
 // Empty row fields are re-seeded with the standard skeleton so a block can
 // never sit as an empty generic box.
-export function normalizeData(data: Record<string, unknown>, component?: Component): Record<string, unknown> {
+export function normalizeData(
+  data: Record<string, unknown>,
+  component?: Component,
+  lang: Lang = "en",
+): Record<string, unknown> {
   const next: Record<string, unknown> = { ...data };
   if (!component) return next;
   for (const field of component.fields) {
     const value = next[field.name];
     if (field.kind === "pairs" || field.kind === "ranked" || field.kind === "dated") {
       if (!Array.isArray(value) || value.length === 0) {
-        const seeded = seedValue(field);
+        const seeded = seedValue(field, lang);
         if (Array.isArray(seeded) && seeded.length > 0) {
           next[field.name] = seeded;
           continue;
@@ -163,18 +157,4 @@ export function blockProgress(block: Block, component?: Component): { filled: nu
 
 export function blockReady(block: Block, component?: Component): boolean {
   return Boolean(component) && countWords(block.brief ?? "") >= BRIEF_WORDS;
-}
-
-export function readyHint(block: Block, _component?: Component): string {
-  if (countWords(block.brief ?? "") < BRIEF_WORDS) {
-    return `Add a brief of at least ${BRIEF_WORDS} words so the agent has context.`;
-  }
-  return "";
-}
-
-export function formatDate(value: string): string {
-  if (!value) return "";
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }

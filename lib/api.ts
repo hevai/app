@@ -1,4 +1,14 @@
-import type { AgentPayload, Component, Org, Plugin, Profile, Project, RunBlockInput, Template } from "@/types";
+import type {
+  AgentPayload,
+  Component,
+  Org,
+  Plugin,
+  Profile,
+  Project,
+  RunAssistantInput,
+  RunBlockInput,
+  Template,
+} from "@/types";
 
 const baseUrl = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 export class ApiError extends Error {
@@ -69,6 +79,9 @@ export const api = {
 
   runBlock: (component: string, body: RunBlockInput) =>
     request<AgentPayload>("POST", `/${component}/run`, body),
+
+  runAssistant: (body: RunAssistantInput) =>
+    request<AgentPayload>("POST", "/assistant/run", body),
 
   profile: (wallet: string) => request<Profile>("GET", `/users/${wallet}`),
   updateProfile: (wallet: string, patch: Partial<Profile>) =>
