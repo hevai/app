@@ -17,11 +17,12 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { defaultData, useProjects } from "@/contexts/projects";
-import { useCatalog } from "@/contexts/catalog";
-import { useIdentity } from "@/contexts/identity";
+import { defaultData } from "@/lib/utils";
+import { useProjects } from "@/hooks/use-projects";
+import { useCatalog } from "@/hooks/use-catalog";
+import { useIdentity } from "@/hooks/use-identity";
 import { useSession } from "@/hooks/use-session";
-import { useLocale } from "@/contexts/locale";
+import { useLocale } from "@/hooks/use-locale";
 import { api } from "@/lib/api";
 import { coerceData, executeAgent, SessionInvalidError } from "@/lib/compose";
 import { BRIEF_WORDS, blockReady } from "@/lib/utils";
@@ -34,7 +35,8 @@ import { Empty } from "@/components/empty";
 import { Chat } from "@/components/chat";
 import { Confirm } from "@/components/confirm";
 import { ImagePicker } from "@/components/image-picker";
-import { Icon, templateIcon } from "@/components/icon";
+import { templateIcon } from "@/lib/utils";
+import { Icon } from "@/components/icon";
 
 function SortableSection({
   block,

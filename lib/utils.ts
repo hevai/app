@@ -100,6 +100,31 @@ export function seedValue(field: Field, lang: Lang = "en"): unknown {
   }
 }
 
+export function defaultData(component: Component | undefined, lang: Lang = "en"): Record<string, unknown> {
+  const data: Record<string, unknown> = {};
+  if (!component) return data;
+  for (const field of component.fields) data[field.name] = seedValue(field, lang);
+  return data;
+}
+
+export function formatUsdc(value: string): string {
+  try {
+    const amount = BigInt(value);
+    const whole = amount / 1_000_000n;
+    const fraction = ((amount % 1_000_000n) / 10_000n).toString().padStart(2, "0");
+    return `${whole}.${fraction}`;
+  } catch {
+    return "0.00";
+  }
+}
+
+export function templateIcon(name: string): string {
+  if (name === "idea") return "lightbulb";
+  if (name === "startup") return "rocket";
+  if (name === "enterprise") return "building";
+  return "sparkles";
+}
+
 // Coerces stored field values to their current shape (legacy blocks saved
 // before a kind existed — or with simpler rows — keep rendering/editing).
 // Empty row fields are re-seeded with the standard skeleton so a block can

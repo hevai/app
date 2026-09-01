@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useProjects } from "@/contexts/projects";
-import { useIdentity } from "@/contexts/identity";
-import { useCatalog } from "@/contexts/catalog";
-import { useLocale } from "@/contexts/locale";
+import { useProjects } from "@/hooks/use-projects";
+import { useIdentity } from "@/hooks/use-identity";
+import { useCatalog } from "@/hooks/use-catalog";
+import { useLocale } from "@/hooks/use-locale";
 import { Empty } from "@/components/empty";
 import { Confirm } from "@/components/confirm";
-import { Icon, templateIcon } from "@/components/icon";
+import { templateIcon } from "@/lib/utils";
+import { Icon } from "@/components/icon";
 
 interface HomeProps {
   onCreate: () => void;

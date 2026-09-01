@@ -3,10 +3,10 @@ import { Check, Monitor, Shield } from "lucide-react";
 import { Connector } from "@/components/connector";
 import { NetworkSelector } from "@/components/network-selector";
 import { Switcher } from "@/components/switcher";
-import { useIdentity } from "@/contexts/identity";
+import { useIdentity } from "@/hooks/use-identity";
 import { useSession } from "@/hooks/use-session";
-import { useNetwork } from "@/contexts/network";
-import { useLocale } from "@/contexts/locale";
+import { useNetwork } from "@/hooks/use-network";
+import { useLocale } from "@/hooks/use-locale";
 import type { NetworkId } from "@compose-market/sdk/chains";
 
 function deviceIdFromQuery(): string | null {

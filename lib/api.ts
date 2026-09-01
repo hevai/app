@@ -1,10 +1,13 @@
 import type {
   AgentPayload,
   Component,
+  Invite,
   Org,
   Plugin,
+  Preview,
   Profile,
   Project,
+  Role,
   RunAssistantInput,
   RunBlockInput,
   Template,
@@ -70,8 +73,10 @@ const toOrg = (row: OrgRow): Org => ({
 export const api = {
   health: () => request<{ ok: boolean; uptime: number }>("GET", "/health"),
 
-  storeIdentityPair: (smartAccount: string, jwt: string) =>
-    request<{ ok: boolean }>("POST", "/identity-pairs", { smartAccount, jwt }),
+  // JWT mirror + profile live together in the users table: both sync
+  // through PATCH /users/:wallet.
+  syncIdentity: (wallet: string, jwt: string) =>
+    request<Profile>("PATCH", `/users/${wallet}`, { jwt }),
 
   templates: () => request<Template[]>("GET", "/templates"),
   components: () => request<Component[]>("GET", "/components"),
@@ -97,9 +102,27 @@ export const api = {
   listOrgs: async (owner: string): Promise<Org[]> =>
     (await request<OrgRow[]>("GET", `/orgs/${owner}`)).map(toOrg),
   createOrg: (org: Org) => request<OrgRow>("POST", "/orgs", org).then(toOrg),
-  updateOrg: (id: string, patch: Partial<Org>) =>
+  updateOrg: (id: string, patch: Partial<Pick<Org, "name" | "image">>) =>
     request<OrgRow>("PATCH", `/orgs/${id}`, patch).then(toOrg),
   deleteOrg: (id: string) => request<{ ok: boolean }>("DELETE", `/orgs/${id}`),
+
+  createInvite: (orgId: string, wallet: string, role: Role) =>
+    request<Invite>("POST", `/orgs/${orgId}/invites`, { wallet, role }),
+  listInvites: (orgId: string, wallet: string) =>
+    request<Invite[]>(
+      "GET",
+      `/orgs/${orgId}/invites?wallet=${encodeURIComponent(wallet)}`,
+    ),
+  revokeInvite: (code: string) =>
+    request<{ ok: boolean }>("DELETE", `/invites/${encodeURIComponent(code)}`),
+  peekInvite: (code: string) =>
+    request<Preview>("GET", `/invites/${encodeURIComponent(code)}`),
+  acceptInvite: (code: string, wallet: string) =>
+    request<OrgRow>(
+      "POST",
+      `/invites/${encodeURIComponent(code)}/accept`,
+      { wallet },
+    ).then(toOrg),
 
   upload: (data: string, name: string) =>
     request<{ cid: string; url: string }>("POST", "/upload", { data, name }),
