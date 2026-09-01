@@ -42,7 +42,9 @@ export function Chat({ project }: { project: Project }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ x: 24, y: 0 });
   const [placed, setPlaced] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    address ? load(address, project.id) : [],
+  );
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const drag = useRef<{ startX: number; startY: number; baseX: number; baseY: number; moved: boolean } | null>(null);
@@ -50,11 +52,6 @@ export function Chat({ project }: { project: Project }) {
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
   const size = 52;
-
-  useEffect(() => {
-    setMessages(address ? load(address, project.id) : []);
-    setDraft("");
-  }, [address, project.id]);
 
   useEffect(() => {
     if (!address || messages.length === 0) return;

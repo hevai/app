@@ -454,7 +454,7 @@ export function ProjectPage() {
         }}
       />
 
-      <Chat project={project} />
+      <Chat key={`${address ?? "anon"}:${project.id}`} project={project} />
     </div>
   );
 }
