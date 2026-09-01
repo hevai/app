@@ -1,72 +1,17 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import { isDesktop } from "@/lib/platform";
+import { LOCALE_KEY, pathLang, withLocale } from "@/lib/url";
 import { catalogIt, en, it, translate, type Lang, type TKey } from "@/lib/lang";
+import { Locale } from "@/hooks/use-locale";
 import type { Component, Role } from "@/types";
 
-const STORAGE_KEY = "hevai:locale";
-const PREFIX = "/it";
-
 type Params = Record<string, string | number>;
-
-interface LocaleValue {
-  lang: Lang;
-  setLang: (lang: Lang) => void;
-  t: (key: TKey, params?: Params) => string;
-  err: (input: unknown, fallback?: TKey) => string;
-  optionLabel: (component: Component | undefined, value: string) => string;
-  roleLabel: (role: string) => string;
-  memberName: (name: string) => string;
-  formatDate: (value: string) => string;
-  timeAgo: (timestamp: number) => string;
-  formatExpiry: (expiresAt: number | null) => string;
-}
-
-const Locale = createContext<LocaleValue | null>(null);
-
-export function pathLang(path: string): Lang {
-  return path === PREFIX || path.startsWith(`${PREFIX}/`) ? "it" : "en";
-}
-
-export function stripLocale(path: string): string {
-  if (path === PREFIX || path.startsWith(`${PREFIX}/`)) {
-    const stripped = path.slice(PREFIX.length);
-    return stripped || "/";
-  }
-  return path;
-}
-
-export function withLocale(path: string, lang: Lang): string {
-  const stripped = stripLocale(path);
-  if (lang === "en") return stripped;
-  return stripped === "/" ? PREFIX : `${PREFIX}${stripped}`;
-}
-
-export function basenameFromPath(path: string): string | undefined {
-  return pathLang(path) === "it" ? PREFIX : undefined;
-}
-
-export function primeLocale(): boolean {
-  if (isDesktop()) return false;
-  const path = window.location.pathname;
-  if (pathLang(path) === "it") return false;
-  let target: Lang = "en";
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "it" || stored === "en") target = stored;
-  else if (navigator.language?.toLowerCase().startsWith("it")) target = "it";
-  if (target !== "it") return false;
-  window.location.replace(
-    withLocale(path, "it") + window.location.search + window.location.hash,
-  );
-  return true;
-}
 
 const exactErrors: Record<string, TKey> = {
   "The model did not return valid JSON": "agent.badJson",
@@ -99,7 +44,7 @@ const suffixErrors: Array<[string, TKey, string]> = [
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
     if (!isDesktop()) return pathLang(window.location.pathname);
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(LOCALE_KEY);
     if (stored === "it" || stored === "en") return stored;
     return navigator.language?.toLowerCase().startsWith("it") ? "it" : "en";
   });
@@ -114,7 +59,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   );
 
   const setLang = useCallback((next: Lang) => {
-    localStorage.setItem(STORAGE_KEY, next);
+    localStorage.setItem(LOCALE_KEY, next);
     document.documentElement.lang = next;
     if (isDesktop()) {
       setLangState(next);
@@ -229,10 +174,4 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   );
 
   return <Locale.Provider value={value}>{children}</Locale.Provider>;
-}
-
-export function useLocale(): LocaleValue {
-  const value = useContext(Locale);
-  if (!value) throw new Error("useLocale must be used within a LocaleProvider");
-  return value;
 }

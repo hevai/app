@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -10,18 +8,8 @@ import {
 import type { Component, Template } from "@/types";
 import { api } from "@/lib/api";
 import { translateCatalog } from "@/lib/lang";
-import { useLocale } from "./locale";
-
-interface CatalogValue {
-  components: Component[];
-  templates: Template[];
-  ready: boolean;
-  componentByName: (name: string) => Component | undefined;
-  templateByName: (name: string) => Template | undefined;
-  templateComponents: (name: string) => string[];
-}
-
-const Catalog = createContext<CatalogValue | null>(null);
+import { useLocale } from "@/hooks/use-locale";
+import { Catalog } from "@/hooks/use-catalog";
 
 const STORAGE_KEY = "hevai:catalog";
 const STORAGE_KEY_LEGACY = "***";
@@ -115,10 +103,4 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   );
 
   return <Catalog.Provider value={value}>{children}</Catalog.Provider>;
-}
-
-export function useCatalog(): CatalogValue {
-  const value = useContext(Catalog);
-  if (!value) throw new Error("useCatalog must be used within a CatalogProvider");
-  return value;
 }

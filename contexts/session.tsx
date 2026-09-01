@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useRef,
   useState,
@@ -18,54 +16,14 @@ import type {
   SessionActiveEvent,
 } from "@compose-market/sdk";
 import type { NetworkId } from "@compose-market/sdk/chains";
-import { useNetwork } from "@/contexts/network";
-import { useLocale } from "@/contexts/locale";
+import { useNetwork } from "@/hooks/use-network";
+import { useLocale } from "@/hooks/use-locale";
+import { SessionContext, emptySession, type SessionState } from "@/hooks/use-session";
 import { client, evmChainId, getChainObject, isEvmNetwork } from "@/lib/chains";
 import { isDesktop } from "@/lib/platform";
 import { sdk } from "@/lib/sdk";
 
 const DESKTOP_CONTEXT_KEY = "hevai:compose-context";
-
-export interface SessionState {
-  active: boolean;
-  userAddress: string | null;
-  network: NetworkId | null;
-  keyId: string | null;
-  token: string | null;
-  budgetLimit: string;
-  budgetUsed: string;
-  budgetLocked: string;
-  budgetRemaining: string;
-  expiresAt: number | null;
-  source: "web" | "desktop" | null;
-}
-
-interface SessionContextValue {
-  session: SessionState;
-  isCreating: boolean;
-  error: string | null;
-  createSession: (budgetWei: string, durationHours: number) => Promise<KeyCreateResponse>;
-  createLocalLink: (deviceId: string) => Promise<LocalLinkCreateResponse>;
-  redeemLocalLink: (token: string, deviceId: string) => Promise<LocalRedeemedContext>;
-  refreshSession: () => Promise<void>;
-  clearSession: () => void;
-}
-
-const emptySession: SessionState = {
-  active: false,
-  userAddress: null,
-  network: null,
-  keyId: null,
-  token: null,
-  budgetLimit: "0",
-  budgetUsed: "0",
-  budgetLocked: "0",
-  budgetRemaining: "0",
-  expiresAt: null,
-  source: null,
-};
-
-const SessionContext = createContext<SessionContextValue | null>(null);
 
 function readDesktopContext(): LocalRedeemedContext | null {
   try {
@@ -276,7 +234,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => controller.abort();
   }, [session.active, session.network, session.userAddress]);
 
-  const createSession = useCallback(async (budgetWei: string, durationHours: number) => {
+  const createSession = useCallback(async (budgetWei: string, durationHours: number): Promise<KeyCreateResponse> => {
     const address = desktop ? session.userAddress : account?.address ?? null;
     if (!address) throw new Error("Connect your account first");
     const network = selectedNetwork;
@@ -373,7 +331,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, [account, attach, chains, desktop, refreshSession, selectedNetwork, session.token, session.userAddress, t]);
 
-  const createLocalLink = useCallback(async (deviceId: string) => {
+  const createLocalLink = useCallback(async (deviceId: string): Promise<LocalLinkCreateResponse> => {
     if (desktop || !account?.address) throw new Error("Connect with Thirdweb on the web app first");
     const network = selectedNetwork;
     attach(account.address, network, session.token);
@@ -384,7 +342,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
   }, [account?.address, attach, desktop, selectedNetwork, session.token]);
 
-  const redeemLocalLink = useCallback(async (token: string, deviceId: string) => {
+  const redeemLocalLink = useCallback(async (token: string, deviceId: string): Promise<LocalRedeemedContext> => {
     const result = await sdk.local.link.redeem({ token, deviceId });
     const context = result.context;
     attach(context.userAddress, context.network, context.key.token);
@@ -415,10 +373,4 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       {children}
     </SessionContext.Provider>
   );
-}
-
-export function useSession(): SessionContextValue {
-  const value = useContext(SessionContext);
-  if (!value) throw new Error("useSession must be used within SessionProvider");
-  return value;
 }

@@ -1,17 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { fetchChains, type FacilitatorChain, type NetworkId } from "@compose-market/sdk/chains";
 import { setChainRegistry, setDefaultNetwork as setIdentityNetwork } from "@/lib/chains";
-
-interface NetworkValue {
-  chains: FacilitatorChain[];
-  defaultNetwork: NetworkId;
-  selectedNetwork: NetworkId;
-  setSelectedNetwork: (network: NetworkId) => void;
-  isLoading: boolean;
-  error: Error | null;
-}
-
-const Network = createContext<NetworkValue | null>(null);
+import { Network } from "@/hooks/use-network";
 
 const REGISTRY_CACHE_KEY = "hevai:chains";
 const FETCH_TIMEOUT_MS = 8_000;
@@ -120,10 +110,4 @@ export function ChainProvider({ children }: { children: ReactNode }) {
       {children}
     </Network.Provider>
   );
-}
-
-export function useNetwork(): NetworkValue {
-  const value = useContext(Network);
-  if (!value) throw new Error("useNetwork must be used within a ChainProvider");
-  return value;
 }

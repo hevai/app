@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -11,23 +9,10 @@ import {
 import type { Invite, Member, Org, Role } from "@/types";
 import { uid } from "@/schema";
 import { api } from "@/lib/api";
-import { useIdentity } from "./identity";
-
-interface ScopeValue {
-  orgs: Org[];
-  getOrg: (id: string) => Org | undefined;
-  createOrg: (name: string) => Org;
-  updateOrg: (id: string, patch: Partial<Org>) => void;
-  deleteOrg: (id: string) => void;
-  invites: Invite[];
-  createInvite: (orgId: string, role: Role) => Invite;
-  revokeInvite: (id: string) => void;
-}
-
-const ScopeContext = createContext<ScopeValue | null>(null);
+import { useIdentity } from "@/hooks/use-identity";
+import { ScopeContext } from "@/hooks/use-scope";
 
 const ORG_PREFIX = "hevai:orgs";
-const INVITE_PREFIX = "hevai:invites";
 
 function normalize(org: Org): Org {
   return {
@@ -49,16 +34,6 @@ function loadOrgs(address: string): Org[] {
   }
 }
 
-function loadInvites(address: string): Invite[] {
-  try {
-    const raw = localStorage.getItem(`${INVITE_PREFIX}:${address.toLowerCase()}`);
-    const parsed = raw ? (JSON.parse(raw) as Invite[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
 function mergeOrgs(local: Org[], remote: Org[]): Org[] {
   const byId = new Map<string, Org>();
   for (const org of remote) byId.set(org.id, org);
@@ -75,20 +50,23 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
   const identity = useIdentity();
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
+  const [reload, setReload] = useState(0);
   const orgsRef = useRef<Org[]>([]);
+
+  const refresh = useCallback(() => setReload((count) => count + 1), []);
 
   useEffect(() => {
     const next = identity.address ? loadOrgs(identity.address) : [];
     orgsRef.current = next;
     setOrgs(next);
-    setInvites(identity.address ? loadInvites(identity.address) : []);
+    setInvites([]);
     if (!identity.address || !hasBackend) return;
     let active = true;
     const wallet = identity.address;
     api
       .listOrgs(wallet)
       .then((remote) => {
-        if (!active) return;
+        if (!active) return undefined;
         const merged = mergeOrgs(orgsRef.current, remote);
         orgsRef.current = merged;
         setOrgs(merged);
@@ -99,9 +77,18 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
           if (!remoteCopy) {
             api.createOrg(org).catch((error) => console.warn("[hevai] org sync failed", error));
           } else if (remoteCopy.updated !== org.updated) {
-            api.updateOrg(org.id, org).catch((error) => console.warn("[hevai] org sync failed", error));
+            api
+              .updateOrg(org.id, { name: org.name, image: org.image })
+              .catch((error) => console.warn("[hevai] org sync failed", error));
           }
         }
+        return Promise.all(
+          merged.map((org) => api.listInvites(org.id, wallet).catch(() => [] as Invite[])),
+        );
+      })
+      .then((lists) => {
+        if (!active || !lists) return;
+        setInvites(lists.flat());
       })
       .catch((error) => {
         console.warn("[hevai] org load failed", error);
@@ -109,7 +96,7 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [identity.address]);
+  }, [identity.address, reload]);
 
   const commit = useCallback(
     (next: Org[], sync?: { upsert?: Org[]; removed?: string[] }) => {
@@ -160,7 +147,13 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
         changed = { ...org, ...patch, updated: Date.now() };
         return changed;
       });
-      commit(next, { upsert: changed ? [changed] : [] });
+      commit(next);
+      if (changed && hasBackend) {
+        // members are server-managed (invites/accepts own the roster)
+        api
+          .updateOrg(id, { name: changed.name, image: changed.image })
+          .catch((error) => console.warn("[hevai] org sync failed", error));
+      }
     },
     [commit],
   );
@@ -168,43 +161,28 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
   const deleteOrg = useCallback(
     (id: string) => {
       commit(orgsRef.current.filter((org) => org.id !== id), { removed: [id] });
-      setInvites((current) => {
-        const next = current.filter((invite) => invite.org !== id);
-        if (identity.address) {
-          localStorage.setItem(`${INVITE_PREFIX}:${identity.address.toLowerCase()}`, JSON.stringify(next));
-        }
-        return next;
-      });
+      setInvites((current) => current.filter((invite) => invite.org !== id));
     },
-    [commit, identity.address],
+    [commit],
   );
 
-  const createInvite = useCallback((orgId: string, role: Role) => {
-    if (!identity.address) throw new Error("Connect before creating an invite");
-    const invite: Invite = {
-      id: uid(),
-      org: orgId,
-      code: uid(),
-      role,
-      expires: Date.now() + 7 * 24 * 3_600_000,
-    };
-    setInvites((current) => {
-      const next = [invite, ...current];
-      localStorage.setItem(`${INVITE_PREFIX}:${identity.address!.toLowerCase()}`, JSON.stringify(next));
-      return next;
-    });
-    return invite;
-  }, [identity.address]);
+  const createInvite = useCallback(
+    async (orgId: string, role: Role): Promise<Invite> => {
+      if (!identity.address) throw new Error("Connect before creating an invite");
+      if (!hasBackend) throw new Error("Invites need the backend");
+      const invite = await api.createInvite(orgId, identity.address, role);
+      setInvites((current) => [invite, ...current.filter((item) => item.id !== invite.id)]);
+      return invite;
+    },
+    [identity.address],
+  );
 
-  const revokeInvite = useCallback((id: string) => {
-    setInvites((current) => {
-      const next = current.filter((invite) => invite.id !== id);
-      if (identity.address) {
-        localStorage.setItem(`${INVITE_PREFIX}:${identity.address.toLowerCase()}`, JSON.stringify(next));
-      }
-      return next;
-    });
-  }, [identity.address]);
+  const revokeInvite = useCallback((code: string) => {
+    setInvites((current) => current.filter((invite) => invite.code !== code && invite.id !== code));
+    if (hasBackend) {
+      api.revokeInvite(code).catch((error) => console.warn("[hevai] invite revoke failed", error));
+    }
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -216,15 +194,10 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
       invites,
       createInvite,
       revokeInvite,
+      refresh,
     }),
-    [orgs, getOrg, createOrg, updateOrg, deleteOrg, invites, createInvite, revokeInvite],
+    [orgs, getOrg, createOrg, updateOrg, deleteOrg, invites, createInvite, revokeInvite, refresh],
   );
 
   return <ScopeContext.Provider value={value}>{children}</ScopeContext.Provider>;
-}
-
-export function useScope(): ScopeValue {
-  const value = useContext(ScopeContext);
-  if (!value) throw new Error("useScope must be used within a ScopeProvider");
-  return value;
 }

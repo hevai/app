@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useState,
   type ReactNode,
@@ -17,20 +15,7 @@ import { api } from "@/lib/api";
 import { useSession } from "@/hooks/use-session";
 import { isDesktop } from "@/lib/platform";
 import type { User } from "@/types";
-
-interface IdentityValue {
-  address: string | null;
-  jwt: string | null;
-  user: User | null;
-  isConnected: boolean;
-  isConnecting: boolean;
-  isAuthenticating: boolean;
-  connect: () => void;
-  disconnect: () => void;
-  updateProfile: (patch: { name?: string; email?: string; image?: string }) => Promise<void>;
-}
-
-const Identity = createContext<IdentityValue | null>(null);
+import { Identity } from "@/hooks/use-identity";
 
 const hasBackend = Boolean((import.meta.env.VITE_API_URL ?? "").trim());
 
@@ -121,9 +106,9 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
     if (!hasBackend || desktop || !jwt) return;
 
     setIsAuthenticating(true);
-    // Non-blocking Neon sync: store jwt:smart-account pair in database
+    // Non-blocking Neon sync: the jwt mirror lives in the users table
     api
-      .storeIdentityPair(address, jwt)
+      .syncIdentity(address, jwt)
       .catch((error) => {
         console.info("[hevai] background user sync", error);
       })
@@ -180,10 +165,4 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
       {children}
     </Identity.Provider>
   );
-}
-
-export function useIdentity(): IdentityValue {
-  const value = useContext(Identity);
-  if (!value) throw new Error("useIdentity must be used within an IdentityProvider");
-  return value;
 }

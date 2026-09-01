@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -12,40 +10,13 @@ import type { Block, Component, Project } from "@/types";
 import { uid } from "@/schema";
 import { api } from "@/lib/api";
 import type { Lang } from "@/lib/lang";
-import { normalizeData, seedValue } from "@/lib/utils";
-import { useIdentity } from "./identity";
-import { useCatalog } from "./catalog";
-import { useLocale } from "./locale";
-
-interface ProjectsValue {
-  projects: Project[];
-  getProject: (id: string) => Project | undefined;
-  createProject: (input: {
-    name: string;
-    description: string;
-    template: string;
-    components?: string[];
-    blocks?: Block[];
-    image?: string;
-  }) => Project;
-  updateProject: (id: string, patch: Partial<Project>) => void;
-  deleteProject: (id: string) => void;
-  addBlock: (projectId: string, componentName: string, patch?: Partial<Block>) => Block | undefined;
-  removeBlock: (projectId: string, blockId: string) => void;
-  updateBlock: (projectId: string, blockId: string, patch: Partial<Block>) => void;
-  reorderBlocks: (projectId: string, orderedIds: string[]) => void;
-}
-
-const Projects = createContext<ProjectsValue | null>(null);
+import { defaultData, normalizeData } from "@/lib/utils";
+import { useIdentity } from "@/hooks/use-identity";
+import { useCatalog } from "@/hooks/use-catalog";
+import { useLocale } from "@/hooks/use-locale";
+import { Projects } from "@/hooks/use-projects";
 
 const STORAGE_PREFIX = "hevai:projects";
-
-export function defaultData(component: Component | undefined, lang: Lang = "en"): Record<string, unknown> {
-  const data: Record<string, unknown> = {};
-  if (!component) return data;
-  for (const field of component.fields) data[field.name] = seedValue(field, lang);
-  return data;
-}
 
 function makeBlock(componentName: string, order: number, component?: Component, lang: Lang = "en"): Block {
   return {
@@ -373,10 +344,4 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   );
 
   return <Projects.Provider value={value}>{children}</Projects.Provider>;
-}
-
-export function useProjects(): ProjectsValue {
-  const value = useContext(Projects);
-  if (!value) throw new Error("useProjects must be used within a ProjectsProvider");
-  return value;
 }
