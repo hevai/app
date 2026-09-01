@@ -8,11 +8,12 @@ import { ProjectPage } from "./pages/project";
 import { OrgPage } from "./pages/org";
 import { ConnectLocalPage } from "./pages/connect-local";
 import { DeepLinkHandler } from "./components/deep-link";
+import { stripLocale } from "./contexts/locale";
 
 export default function App() {
   const [canvasOpen, setCanvasOpen] = useState(false);
 
-  if (window.location.pathname === "/connect-local") {
+  if (stripLocale(window.location.pathname) === "/connect-local") {
     return <ConnectLocalPage />;
   }
 

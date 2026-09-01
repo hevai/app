@@ -139,6 +139,19 @@ export interface RunBlockInput {
   description: string;
   data: Record<string, unknown>;
   options: Record<string, string[]>;
+  locale?: string;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
+}
+
+export interface RunAssistantInput {
+  wallet: string;
+  project: string;
+  messages: ChatMessage[];
+  locale?: string;
 }
 
 export interface Navigation {

@@ -480,6 +480,50 @@ button {
     box-shadow: 0 0 8px color-mix(in srgb, var(--danger) 65%, transparent);
 }
 
+.switcher {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    padding: 2px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--glass);
+}
+
+.switcher-item {
+    min-width: 0;
+    padding: 4px 9px;
+    border-radius: calc(var(--r-md) - 2px);
+    font: 600 var(--fs-xs) var(--mono);
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    transition: all var(--t-fast);
+}
+
+.switcher-item:hover {
+    color: var(--text);
+    background: var(--glass-strong);
+}
+
+.switcher-item[data-active] {
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+}
+
+.connector-name {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.canvas-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-4);
+}
+
 .session-modal {
     width: min(420px, calc(100vw - 32px));
 }
@@ -1091,6 +1135,10 @@ button {
     .canvas-assembly {
         min-height: 180px;
     }
+
+    .canvas-fields {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ============================================================================
@@ -1496,6 +1544,256 @@ button {
     border-top: 1px solid var(--line);
 }
 
+.chat-foot form {
+    display: flex;
+}
+
+.chat-msg {
+    max-width: 88%;
+    padding: 8px 12px;
+    border-radius: var(--r-lg);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.chat-msg[data-role="user"] {
+    align-self: flex-end;
+    background: var(--accent);
+    color: #1a1208;
+    border-bottom-right-radius: var(--r-sm);
+    white-space: pre-wrap;
+}
+
+.chat-msg[data-role="assistant"] {
+    align-self: flex-start;
+    background: var(--elevated);
+    border: 1px solid var(--line);
+    border-bottom-left-radius: var(--r-sm);
+}
+
+.chat-busy {
+    display: inline-flex;
+    gap: 4px;
+    padding: 3px 0;
+}
+
+.chat-busy i {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--r-full);
+    background: var(--faint);
+    animation: chat-pulse 1.2s infinite;
+}
+
+.chat-busy i:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.chat-busy i:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes chat-pulse {
+    0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-2px); }
+}
+
+.chat-chips {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    margin-top: var(--sp-3);
+}
+
+.chat-chip {
+    text-align: left;
+    padding: 7px 10px;
+    border-radius: var(--r-md);
+    background: var(--elevated);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-size: var(--fs-sm);
+    cursor: pointer;
+    transition: border-color var(--t-fast), background var(--t-fast);
+}
+
+.chat-chip:hover {
+    border-color: var(--accent);
+    background: var(--surface);
+}
+
+/* ============================================================================
+   md — shared markdown rendering (assistant chat, future surfaces)
+   ============================================================================ */
+.md {
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+}
+
+.md > :first-child {
+    margin-top: 0;
+}
+
+.md > :last-child {
+    margin-bottom: 0;
+}
+
+.md p {
+    margin: 0 0 6px;
+}
+
+.md h1,
+.md h2,
+.md h3,
+.md h4 {
+    margin: 10px 0 4px;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text);
+}
+
+.md h1:first-child,
+.md h2:first-child,
+.md h3:first-child {
+    margin-top: 0;
+}
+
+.md ul,
+.md ol {
+    margin: 4px 0 8px;
+    padding-left: 18px;
+}
+
+.md ul {
+    list-style: disc;
+}
+
+.md ol {
+    list-style: decimal;
+}
+
+.md li {
+    margin: 2px 0;
+}
+
+.md li > p {
+    margin: 0;
+}
+
+.md strong {
+    font-weight: 650;
+    color: var(--text);
+}
+
+.md em {
+    font-style: italic;
+}
+
+.md del {
+    color: var(--faint);
+}
+
+.md a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.md blockquote {
+    margin: 6px 0;
+    padding: 2px 0 2px 10px;
+    border-left: 2px solid var(--line-strong);
+    color: var(--faint);
+}
+
+.md hr {
+    margin: 8px 0;
+    border: none;
+    border-top: 1px solid var(--line);
+}
+
+.md img {
+    max-width: 100%;
+    margin: 6px 0;
+    border-radius: var(--r-md);
+}
+
+.md table {
+    display: block;
+    margin: 6px 0;
+    border-collapse: collapse;
+    font-size: var(--fs-xs);
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.md th,
+.md td {
+    border: 1px solid var(--line);
+    padding: 4px 8px;
+    text-align: left;
+}
+
+.md th {
+    background: var(--surface);
+    font-weight: 600;
+}
+
+.md .md-inline {
+    padding: 1px 5px;
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 0.92em;
+}
+
+.md-code {
+    margin: 6px 0;
+    border-radius: var(--r-md);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    overflow: hidden;
+}
+
+.md-code-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px 4px 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: var(--fs-xs);
+    color: var(--faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.md-code-bar button {
+    display: grid;
+    place-items: center;
+    padding: 3px;
+    border-radius: var(--r-sm);
+    color: var(--faint);
+    cursor: pointer;
+    transition: color var(--t-fast), background var(--t-fast);
+}
+
+.md-code-bar button:hover {
+    color: var(--text);
+    background: var(--elevated);
+}
+
+.md-code pre {
+    margin: 0;
+    padding: 10px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+}
+
 /* ============================================================================
    menu — dropdown / context
    ============================================================================ */
@@ -1764,8 +2062,20 @@ button {
         display: none;
     }
 
+    .topbar {
+        gap: var(--sp-2);
+    }
+
     .topbar-sub {
         display: none;
+    }
+
+    .topbar .network-selector select {
+        max-width: 110px;
+    }
+
+    .connector-name {
+        max-width: 96px;
     }
 
     .chat-fab {
@@ -1790,6 +2100,29 @@ button {
 
     .section-actions {
         opacity: 1;
+    }
+
+    .topbar {
+        gap: var(--sp-1);
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+    }
+
+    .topbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .topbar .network-selector select {
+        max-width: 84px;
+    }
+
+    .connector-name {
+        max-width: 64px;
+    }
+
+    .session-label {
+        display: none;
     }
 }
 
@@ -1899,8 +2232,10 @@ button {
 }
 
 .row-select {
-    width: 110px;
-    flex-shrink: 0;
+    width: auto;
+    min-width: 110px;
+    max-width: 180px;
+    flex: 0 1 auto;
     padding: 5px 8px;
     font-size: var(--fs-xs);
 }
