@@ -11,9 +11,11 @@ import {
 import type { Block, Component, Project } from "@/types";
 import { uid } from "@/schema";
 import { api } from "@/lib/api";
+import type { Lang } from "@/lib/lang";
 import { normalizeData, seedValue } from "@/lib/utils";
 import { useIdentity } from "./identity";
 import { useCatalog } from "./catalog";
+import { useLocale } from "./locale";
 
 interface ProjectsValue {
   projects: Project[];
@@ -38,20 +40,20 @@ const Projects = createContext<ProjectsValue | null>(null);
 
 const STORAGE_PREFIX = "hevai:projects";
 
-export function defaultData(component: Component | undefined): Record<string, unknown> {
+export function defaultData(component: Component | undefined, lang: Lang = "en"): Record<string, unknown> {
   const data: Record<string, unknown> = {};
   if (!component) return data;
-  for (const field of component.fields) data[field.name] = seedValue(field);
+  for (const field of component.fields) data[field.name] = seedValue(field, lang);
   return data;
 }
 
-function makeBlock(componentName: string, order: number, component?: Component): Block {
+function makeBlock(componentName: string, order: number, component?: Component, lang: Lang = "en"): Block {
   return {
     id: uid(),
     component: componentName,
     title: component?.label ?? componentName,
     brief: "",
-    data: defaultData(component),
+    data: defaultData(component, lang),
     options: {},
     order,
   };
@@ -116,6 +118,7 @@ const hasBackend = Boolean((import.meta.env.VITE_API_URL ?? "").trim());
 export function ProjectsProvider({ children }: { children: ReactNode }) {
   const { address } = useIdentity();
   const { componentByName, templateComponents } = useCatalog();
+  const { lang, t } = useLocale();
   const [projects, setProjects] = useState<Project[]>([]);
   const projectsRef = useRef(projects);
   const catalogRef = useRef({ componentByName, templateComponents });
@@ -188,7 +191,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       const blocks = project.blocks.map((block) => {
         const component = componentByName(block.component);
         if (!component) return block;
-        const data = normalizeData(block.data, component);
+        const data = normalizeData(block.data, component, lang);
         if (JSON.stringify(data) === JSON.stringify(block.data)) return block;
         blockTouched = true;
         return { ...block, data };
@@ -198,7 +201,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       return { ...project, blocks };
     });
     if (changed.length > 0) commit(next, { changed });
-  }, [address, componentByName, commit]);
+  }, [address, componentByName, commit, lang]);
 
   const getProject = useCallback(
     (id: string) => projects.find((project) => project.id === id),
@@ -223,7 +226,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       } else {
         const names = input.components ?? ofTemplate(input.template);
         blocks = names.map((componentName, index) =>
-          makeBlock(componentName, index, byName(componentName)),
+          makeBlock(componentName, index, byName(componentName), lang),
         );
       }
       const project: Project = {
@@ -235,7 +238,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         image: input.image ?? "",
         members: [],
         blocks,
-        navigation: [{ label: "Overview", blocks: blocks.map((block) => block.id) }],
+        navigation: [{ label: t("project.overview"), blocks: blocks.map((block) => block.id) }],
         plugins: [],
         revision: 1,
         created: now,
@@ -244,7 +247,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       commit([project, ...projectsRef.current], { changed: [project.id] });
       return project;
     },
-    [address, commit],
+    [address, commit, lang, t],
   );
 
   const updateProject = useCallback(
@@ -284,7 +287,12 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     (projectId: string, componentName: string, patch?: Partial<Block>): Block | undefined => {
       const target = projectsRef.current.find((project) => project.id === projectId);
       if (!target) return undefined;
-      const base = makeBlock(componentName, target.blocks.length, catalogRef.current.componentByName(componentName));
+      const base = makeBlock(
+        componentName,
+        target.blocks.length,
+        catalogRef.current.componentByName(componentName),
+        lang,
+      );
       const block: Block = {
         ...base,
         brief: patch?.brief ?? base.brief,
@@ -302,7 +310,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       commit(next, { changed: [projectId] });
       return block;
     },
-    [commit],
+    [commit, lang],
   );
 
   const removeBlock = useCallback(

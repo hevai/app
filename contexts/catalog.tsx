@@ -9,6 +9,8 @@ import {
 } from "react";
 import type { Component, Template } from "@/types";
 import { api } from "@/lib/api";
+import { translateCatalog } from "@/lib/lang";
+import { useLocale } from "./locale";
 
 interface CatalogValue {
   components: Component[];
@@ -21,7 +23,14 @@ interface CatalogValue {
 
 const Catalog = createContext<CatalogValue | null>(null);
 
-const STORAGE_KEY = "***";
+const STORAGE_KEY = "hevai:catalog";
+const STORAGE_KEY_LEGACY = "***";
+
+try {
+  localStorage.removeItem(STORAGE_KEY_LEGACY);
+} catch {
+  // non-fatal
+}
 
 interface Cached {
   components: Component[];
@@ -41,9 +50,10 @@ function loadCache(): Cached | null {
 }
 
 export function CatalogProvider({ children }: { children: ReactNode }) {
+  const { lang } = useLocale();
   const cached = useMemo(loadCache, []);
-  const [components, setComponents] = useState<Component[]>(cached?.components ?? []);
-  const [templates, setTemplates] = useState<Template[]>(cached?.templates ?? []);
+  const [rawComponents, setRawComponents] = useState<Component[]>(cached?.components ?? []);
+  const [rawTemplates, setRawTemplates] = useState<Template[]>(cached?.templates ?? []);
   const [ready, setReady] = useState(Boolean(cached));
 
   useEffect(() => {
@@ -51,8 +61,8 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     Promise.all([api.components(), api.templates()])
       .then(([componentRows, templateRows]) => {
         if (!active) return;
-        setComponents(componentRows);
-        setTemplates(templateRows);
+        setRawComponents(componentRows);
+        setRawTemplates(templateRows);
         setReady(true);
         try {
           localStorage.setItem(
@@ -70,6 +80,14 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       active = false;
     };
   }, []);
+
+  const { components, templates } = useMemo(
+    () =>
+      lang === "it"
+        ? translateCatalog(rawComponents, rawTemplates)
+        : { components: rawComponents, templates: rawTemplates },
+    [lang, rawComponents, rawTemplates],
+  );
 
   const componentByName = useCallback(
     (name: string) => components.find((entry) => entry.name === name),
